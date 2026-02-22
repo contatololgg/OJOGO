@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Chat — jogo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- TELA DE LOGIN -->
+  <div id="screen-register">
+    <h2>Entrar</h2>
+
+    <div class="role-selector">
+      <input type="radio" id="role-player" name="role" value="player" checked>
+      <label for="role-player">Jogador</label>
+
+      <input type="radio" id="role-master" name="role" value="master">
+      <label for="role-master">Mestre</label>
+    </div>
+
+    <!-- PLAYER -->
+    <div id="player-form">
+      <h3>Escolha avatar e nome</h3>
+
+      <div id="avatar-options" class="avatar-grid">
+        <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
+        <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
+        <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
+        <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
+        <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
+        <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
+        <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
+        <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
+        <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
+        <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
+      </div>
+
+      <input id="player-name" placeholder="Seu nome">
+      <input id="player-password" type="password" placeholder="Senha">
+      <button id="enter-player">Entrar como Jogador</button>
+    </div>
+
+    <!-- MASTER -->
+    <div id="master-form" style="display:none">
+      <h3>Mestre</h3>
+
+      <h4>Escolher avatar</h4>
+      <div id="master-avatar-options" class="avatar-grid">
+        <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
+        <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
+        <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
+        <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
+        <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
+        <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
+        <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
+        <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
+        <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
+        <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
+      </div>
+
+      <input id="master-pass" type="password" placeholder="Senha do mestre">
+      <button id="enter-master">Entrar como Mestre</button>
+    </div>
+
+  </div>
+
+
+  <!-- TELA DO CHAT -->
+  <div id="screen-chat" style="display:none">
+
+    <!-- USUÁRIOS ONLINE -->
+    <div id="users-panel">
+      <h3>Online</h3>
+      <ul id="users-list"></ul>
+    </div>
+
+    <!-- CHAT -->
+    <div id="chat-container">
+      <ul id="chat"></ul>
+
+      <div id="chat-input">
+        <input id="msg" placeholder="Mensagem...">
+        <button id="send">Enviar</button>
+      </div>
+    </div>
+
+    <!-- PAINEL DO MESTRE -->
+    <div id="admin-panel" style="display:none">
+      <h3>Painel do Mestre</h3>
+
+      <div class="admin-section">
+        <button id="btn-clear">Limpar Chat</button>
+        <button id="btn-global-mute">Silenciar Todos</button>
+      </div>
+
+      <div class="admin-section">
+        <select id="mute-target"></select>
+        <button id="btn-mute">Silenciar</button>
+        <button id="btn-unmute">Dessilenciar</button>
+      </div>
+
+      <div class="admin-section">
+        <input id="set-name-input" placeholder="Novo nome">
+        <button id="btn-set-name">Trocar nome</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>

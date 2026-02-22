@@ -1,0 +1,433 @@
+/* ===== Reset ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: #1e1f22;
+  color: #e4e6eb;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+/* ===== Tela Registro ===== */
+#screen-register {
+  width: 100%;
+  max-width: 420px;
+  background: #2b2d31;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}
+
+h2, h3 {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* Inputs e botões */
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #1e1f22;
+  color: #fff;
+}
+
+button {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #5865f2;
+  color: white;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #4752c4;
+}
+
+button:disabled {
+  background: #555;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ===== Seletor de Role (Jogador / Mestre) ===== */
+
+.role-selector {
+  display: flex;
+  background: #1e1f22;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 15px;
+  gap: 4px;
+}
+
+.role-selector input[type="radio"] {
+  display: none;
+}
+
+.role-selector label {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  color: #aaa;
+  transition: 0.2s ease;
+}
+
+/* Hover */
+.role-selector label:hover {
+  background: #2b2d31;
+  color: #fff;
+}
+
+/* Selecionado */
+.role-selector input[type="radio"]:checked + label {
+  background: #5865f2;
+  color: #fff;
+  box-shadow: 0 0 10px #5865f288;
+}
+
+/* ===== Avatar Grid ===== */
+#avatar-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 6px;
+  margin-bottom: 12px;
+  background: #1e1f22;
+  border-radius: 8px;
+}
+
+#avatar-options::-webkit-scrollbar {
+  width: 6px;
+}
+
+#avatar-options::-webkit-scrollbar-thumb {
+  background: #5865f2;
+  border-radius: 10px;
+}
+
+.avatar-option {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  object-fit: cover;
+  border: 2px solid transparent;
+  opacity: 0.7;
+  transition: 0.2s ease;
+}
+
+.avatar-option:hover {
+  transform: scale(1.08);
+  opacity: 1;
+}
+
+.avatar-option.selected {
+  border: 2px solid #5865f2;
+  opacity: 1;
+  box-shadow: 0 0 8px #5865f2aa;
+}
+
+/* ===== Tela Chat ===== */
+#screen-chat {
+  width: 100%;
+  max-width: 1100px;
+  height: 90vh;
+  display: flex;
+  gap: 15px;
+}
+
+/* ===== Painel usuários ===== */
+#users-panel {
+  flex: 1;
+  background: #2b2d31;
+  border-radius: 12px;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+#users-panel h3 {
+  margin-bottom: 10px;
+}
+
+#users-list {
+  list-style: none;
+}
+
+#users-list li {
+  padding: 6px;
+  margin-bottom: 6px;
+  background: #383a40;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.user-master {
+  background: #4a3f8c;
+}
+
+.badge-muted {
+  background: #ed4245;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.msg-muted {
+  opacity: 0.5;
+}
+
+/* ===== Chat Container ===== */
+#chat-container {
+  flex: 2;
+  background: #2b2d31;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#chat {
+  flex: 1;
+  list-style: none;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+#chat li {
+  display: flex;
+  align-items: center;
+  background: #383a40;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  word-break: break-word;
+  animation: fadeIn 0.25s ease forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.msg-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  margin-right: 8px;
+  object-fit: cover;
+}
+
+#chat li button {
+  margin-left: auto;
+  background: #ed4245;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+#chat li button:hover {
+  background: #c03537;
+}
+
+/* ===== Input ===== */
+#chat-input {
+  display: flex;
+  padding: 10px;
+  background: #1e1f22;
+  gap: 6px;
+}
+
+#chat-input input {
+  flex: 1;
+}
+
+/* ===== PAINEL MASTER ===== */
+#admin-panel {
+  background: #1e1e1e;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#admin-panel h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #ffcc00;
+  letter-spacing: 1px;
+}
+
+/* Agrupamento de ações */
+.admin-section {
+  background: #2a2a2a;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Botões ADM */
+#admin-panel button {
+  background: #333;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+  font-size: 13px;
+  transition: 0.2s ease;
+}
+
+#admin-panel button:hover {
+  background: #555;
+}
+
+#btn-clear {
+  background: #b30000;
+}
+
+#btn-clear:hover {
+  background: #e60000;
+}
+
+#btn-global-mute {
+  background: #4444aa;
+}
+
+#btn-global-mute:hover {
+  background: #5a5ad6;
+}
+
+/* Inputs do painel */
+#admin-panel input,
+#admin-panel select {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: white;
+}
+
+/* ===== Scroll custom ===== */
+#chat::-webkit-scrollbar,
+#admin-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chat::-webkit-scrollbar-thumb,
+#admin-panel::-webkit-scrollbar-thumb {
+  background: #5865f2;
+  border-radius: 10px;
+}
+
+/* ===== Toast ===== */
+.toast-warning {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ed4245;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  animation: fadeInToast 0.2s ease;
+}
+
+@keyframes fadeInToast {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Responsivo ===== */
+
+/* Tablet */
+@media (max-width: 1100px) {
+  #screen-chat {
+    flex-direction: column;
+    height: 95vh;
+  }
+
+  #users-panel {
+    height: 120px;
+    overflow-x: auto;
+  }
+
+  #users-list {
+    display: flex;
+    gap: 6px;
+  }
+
+  #users-list li {
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  #admin-panel {
+    max-height: 200px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+
+  body {
+    align-items: stretch;
+  }
+
+  #screen-register {
+    border-radius: 0;
+    height: 100vh;
+  }
+
+  #screen-chat {
+    height: 100vh;
+    gap: 8px;
+  }
+
+  #chat li {
+    font-size: 13px;
+  }
+
+  .msg-avatar {
+    width: 22px;
+    height: 22px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  input {
+    font-size: 13px;
+  }
+}
