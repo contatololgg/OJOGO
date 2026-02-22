@@ -376,35 +376,20 @@ button:disabled {
 
 /* ===== Responsivo ===== */
 
-/* Large Desktop (1400px+) */
-@media (min-width: 1400px) {
-  #screen-chat {
-    gap: 20px;
-  }
+/* ===== Tablet ===== */
+@media (max-width: 1100px) {
 
-  #users-panel,
-  #chat-container {
-    border-radius: 16px;
-  }
-
-  #admin-panel {
-    padding: 25px;
-    gap: 20px;
-  }
-}
-
-/* Desktop → Tablet (1100px - 1399px) */
-@media (max-width: 1399px) {
   #screen-chat {
     flex-direction: column;
-    height: 95vh;
-    gap: 12px;
+    height: 100vh;
+    gap: 10px;
   }
 
   #users-panel {
-    height: 140px;
+    width: 100%;
+    height: 90px;
     overflow-x: auto;
-    flex: unset;
+    overflow-y: hidden;
   }
 
   #users-list {
@@ -414,479 +399,99 @@ button:disabled {
 
   #users-list li {
     white-space: nowrap;
-    font-size: 13px;
-    padding: 8px 10px;
+    font-size: 12px;
+    min-width: fit-content;
   }
 
   #chat-container {
-    flex: 2;
+    flex: 1;
   }
 
   #admin-panel {
-    max-height: 250px;
-    overflow-y: auto;
-    margin-bottom: 0;
-  }
-
-  .admin-section {
-    gap: 8px;
-  }
-
-  #admin-panel button {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-}
-
-/* Tablet Intermediário (800px - 1099px) */
-@media (max-width: 1099px) {
-  #users-panel {
-    height: 100px;
-  }
-
-  #users-list li {
-    font-size: 12px;
-    padding: 6px 8px;
-    margin-bottom: 4px;
-  }
-
-  #admin-panel {
+    width: 100%;
     max-height: 180px;
-    padding: 15px;
-  }
-
-  #admin-panel h3 {
-    font-size: 14px;
-  }
-
-  #admin-panel button {
-    font-size: 11px;
-    padding: 5px 10px;
-  }
-
-  .admin-section {
-    padding: 10px;
-  }
-
-  #screen-register {
-    max-width: 100%;
-    padding: 15px;
+    overflow-y: auto;
   }
 }
 
-/* Tablet Pequeno (600px - 799px) */
-@media (max-width: 799px) {
+
+/* ===== Mobile ===== */
+@media (max-width: 600px) {
+
   body {
-    padding: 8px;
-  }
-
-  #screen-register {
-    border-radius: 8px;
-    padding: 12px;
-    max-width: 100%;
-  }
-
-  h2, h3 {
-    margin-bottom: 10px;
-    font-size: 16px;
-  }
-
-  #avatar-options {
-    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    gap: 8px;
-    max-height: 150px;
-  }
-
-  .avatar-option {
-    width: 50px;
-    height: 50px;
-  }
-
-  #screen-chat {
-    height: 100vh;
-    gap: 8px;
-    max-width: 100%;
-  }
-
-  #users-panel {
-    height: 80px;
-    border-radius: 8px;
-  }
-
-  #users-panel h3 {
-    font-size: 12px;
-    display: none;
-  }
-
-  #users-list li {
-    font-size: 11px;
-    padding: 4px 6px;
-    margin-bottom: 4px;
-  }
-
-  #chat-container {
-    border-radius: 8px;
-  }
-
-  #chat li {
-    font-size: 12px;
-    padding: 5px 8px;
-    margin-bottom: 4px;
-  }
-
-  .msg-avatar {
-    width: 24px;
-    height: 24px;
-    margin-right: 6px;
-  }
-
-  #chat-input {
-    padding: 8px;
-    gap: 5px;
-  }
-
-  #chat-input input {
-    font-size: 12px;
-  }
-
-  #chat li button {
-    padding: 3px 5px;
-    font-size: 10px;
-  }
-
-  button {
-    font-size: 12px;
-    padding: 8px;
-  }
-
-  input,
-  select {
-    padding: 7px;
-    margin-top: 6px;
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-
-  #admin-panel {
-    max-height: 150px;
-    padding: 12px;
-    border-radius: 10px;
-    gap: 10px;
-  }
-
-  #admin-panel h3 {
-    font-size: 13px;
-  }
-
-  #admin-panel button {
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-
-  .admin-section {
-    padding: 8px;
-    gap: 6px;
-  }
-
-  #admin-panel input,
-  #admin-panel select {
-    padding: 5px 8px;
-    font-size: 11px;
-  }
-
-  .role-selector {
-    margin-bottom: 12px;
-  }
-
-  .role-selector label {
-    padding: 6px;
-    font-size: 12px;
-  }
-}
-
-/* Smartphone Grande (480px - 599px) */
-@media (max-width: 599px) {
-  body {
-    padding: 6px;
+    padding: 0;
     align-items: stretch;
   }
 
   #screen-register {
     border-radius: 0;
     height: 100vh;
-    padding: 12px;
     max-width: 100%;
-  }
-
-  h2, h3 {
-    font-size: 15px;
-    margin-bottom: 8px;
-  }
-
-  #avatar-options {
-    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-    gap: 6px;
-    max-height: 130px;
-  }
-
-  .avatar-option {
-    width: 45px;
-    height: 45px;
   }
 
   #screen-chat {
+    flex-direction: column;
     height: 100vh;
     gap: 6px;
-    max-width: 100%;
-    padding: 0;
   }
 
+  /* Usuários vira barra horizontal */
   #users-panel {
     height: 70px;
     padding: 8px;
-    border-radius: 6px;
   }
 
-  #users-panel h3 {
-    display: none;
-  }
-
-  #users-list li {
-    font-size: 10px;
-    padding: 3px 5px;
-    margin-bottom: 3px;
-  }
-
-  #chat li {
-    font-size: 12px;
-    padding: 4px 6px;
-    margin-bottom: 3px;
-  }
-
-  .msg-avatar {
-    width: 22px;
-    height: 22px;
-    margin-right: 5px;
-  }
-
-  #chat-container {
-    border-radius: 6px;
-  }
-
-  #chat {
-    padding: 6px;
-  }
-
-  #chat-input {
-    padding: 6px;
-    gap: 4px;
-  }
-
-  #chat-input input {
-    font-size: 12px;
-    padding: 6px;
-  }
-
-  #chat li button {
-    padding: 2px 4px;
-    font-size: 9px;
-  }
-
-  button {
-    font-size: 12px;
-    padding: 6px;
-    border-radius: 5px;
-  }
-
-  input,
-  select {
-    padding: 6px;
-    margin-top: 6px;
-    margin-bottom: 8px;
-    font-size: 12px;
-    border-radius: 5px;
-  }
-
-  #admin-panel {
-    max-height: 140px;
-    padding: 10px;
-    border-radius: 8px;
-    gap: 8px;
-    margin-bottom: 0;
-  }
-
-  #admin-panel h3 {
-    font-size: 12px;
-    margin-bottom: 5px;
-  }
-
-  #admin-panel button {
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-
-  .admin-section {
-    padding: 8px;
-    gap: 5px;
-  }
-
-  #admin-panel input,
-  #admin-panel select {
-    padding: 5px 6px;
-    font-size: 11px;
-  }
-
-  .role-selector {
-    margin-bottom: 10px;
-    padding: 3px;
-  }
-
-  .role-selector label {
-    padding: 6px;
-    font-size: 11px;
-  }
-
-  .badge-muted {
-    font-size: 8px;
-    padding: 1px 4px;
-    margin-left: 4px;
-  }
-
-  .toast-warning {
-    bottom: 10px;
-    right: 10px;
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-}
-
-/* Smartphone Pequeno (até 479px) */
-@media (max-width: 479px) {
-  body {
-    padding: 4px;
-  }
-
-  #screen-register {
-    padding: 10px;
-    border-radius: 0;
-  }
-
-  h2, h3 {
-    font-size: 14px;
-    margin-bottom: 6px;
-  }
-
-  #avatar-options {
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-    gap: 5px;
-    max-height: 110px;
-    padding: 4px;
-  }
-
-  .avatar-option {
-    width: 40px;
-    height: 40px;
-  }
-
-  #screen-chat {
-    gap: 4px;
-  }
-
-  #users-panel {
-    height: 60px;
-    padding: 6px;
-  }
-
-  #users-list li {
-    font-size: 9px;
-    padding: 2px 4px;
-    margin-bottom: 2px;
-  }
-
-  #chat li {
-    font-size: 11px;
-    padding: 3px 5px;
-    margin-bottom: 2px;
-  }
-
-  .msg-avatar {
-    width: 20px;
-    height: 20px;
-    margin-right: 4px;
-  }
-
-  #chat {
-    padding: 4px;
-  }
-
-  #chat-input {
-    padding: 4px;
-    gap: 3px;
-  }
-
-  #chat-input input {
-    font-size: 11px;
-    padding: 5px;
-  }
-
-  #chat li button {
-    padding: 2px 3px;
-    font-size: 8px;
-  }
-
-  button {
-    font-size: 11px;
-    padding: 5px;
-  }
-
-  input,
-  select {
-    padding: 5px;
-    margin-top: 5px;
-    margin-bottom: 6px;
-    font-size: 11px;
-  }
-
-  #admin-panel {
-    max-height: 130px;
-    padding: 8px;
+  #users-list {
+    display: flex;
     gap: 6px;
   }
 
-  #admin-panel h3 {
+  #users-list li {
     font-size: 11px;
+    padding: 4px 6px;
   }
 
-  #admin-panel button {
-    font-size: 9px;
-    padding: 3px 6px;
+  /* Chat ocupa espaço total */
+  #chat-container {
+    flex: 1;
+    border-radius: 0;
+  }
+
+  #chat {
+    padding: 8px;
+  }
+
+  #chat li {
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+
+  .msg-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  #chat-input {
+    padding: 6px;
+  }
+
+  #chat-input input {
+    font-size: 14px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  #admin-panel {
+    border-radius: 0;
+    max-height: 150px;
+    font-size: 12px;
+    padding: 12px;
   }
 
   .admin-section {
-    padding: 6px;
-    gap: 4px;
-  }
-
-  #admin-panel input,
-  #admin-panel select {
-    padding: 4px 5px;
-    font-size: 10px;
-  }
-
-  .role-selector label {
-    font-size: 10px;
-    padding: 5px;
-  }
-
-  .badge-muted {
-    font-size: 7px;
-    padding: 1px 3px;
-  }
-
-  .toast-warning {
-    bottom: 8px;
-    right: 8px;
-    padding: 6px 10px;
-    font-size: 11px;
+    padding: 8px;
   }
 }
