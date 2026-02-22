@@ -7,7 +7,6 @@ const masterForm = document.getElementById("master-form");
 const avatarOptions = document.querySelectorAll(".avatar-option");
 const playerNameInput = document.getElementById("player-name");
 const playerPasswordInput = document.getElementById("player-password"); // novo input no HTML
-const masterNameInput = document.getElementById("master-name");
 const masterPassInput = document.getElementById("master-pass");
 const enterPlayerBtn = document.getElementById("enter-player");
 const enterMasterBtn = document.getElementById("enter-master");
@@ -90,6 +89,7 @@ function atualizarBotaoPlayer() {
   const senha = playerPasswordInput ? playerPasswordInput.value.trim() : "";
   enterPlayerBtn.disabled = !(nome && selectedAvatar && senha);
 }
+
 playerNameInput.addEventListener("input", atualizarBotaoPlayer);
 if (playerPasswordInput) playerPasswordInput.addEventListener("input", atualizarBotaoPlayer);
 
@@ -103,10 +103,11 @@ enterPlayerBtn.addEventListener("click", () => {
 
 // entrar como master
 enterMasterBtn.addEventListener("click", () => {
-  const senha = masterPassInput.value;
-  if (!senha) return alert("Senha necessária.");
-  const nomeDesejado = masterNameInput.value.trim() || "Mestre";
-  socket.emit("register", { role: "master", senha, nome: nomeDesejado });
+  socket.emit("register", {
+    role: "master",
+    senha: masterPassInput.value,
+    avatar: selectedMasterAvatar
+  });
 });
 
 // receber token de sessão
