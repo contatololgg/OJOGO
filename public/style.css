@@ -147,6 +147,11 @@ button:disabled {
   box-shadow: 0 0 8px #5865f2aa;
 }
 
+.avatar-grid.small img {
+  width: 40px;
+  height: 40px;
+}
+
 /* ===== Tela Chat ===== */
 #screen-chat {
   width: 100%;

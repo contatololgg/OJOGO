@@ -246,6 +246,18 @@ btnClear.addEventListener("click", () => {
   socket.emit("clearAll");
 });
 
+const adminAvatarOptions = document.querySelectorAll("#admin-avatar-options .avatar-option");
+
+adminAvatarOptions.forEach(img => {
+  img.addEventListener("click", () => {
+
+    adminAvatarOptions.forEach(i => i.classList.remove("selected"));
+    img.classList.add("selected");
+
+    socket.emit("setMyAvatar", img.dataset.avatar);
+  });
+});
+
 btnGlobalMute.addEventListener("click", () => {
   socket.emit("setGlobalMute", { value: !serverState.globalMuted });
 });
