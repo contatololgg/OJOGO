@@ -195,6 +195,13 @@ sendBtn.addEventListener("click", () => {
   msgInput.value = "";
 });
 
+msgInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    enviarMensagem();
+  }
+});
+
 // render mensagens (com layout tipo WhatsApp simplificado)
 function renderMsg(m) {
   const li = document.createElement("li");
