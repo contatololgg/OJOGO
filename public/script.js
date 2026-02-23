@@ -1,13 +1,17 @@
-// script.js (substitua seu arquivo atual por este)
+// script.js
 const socket = io();
 
+// UI elements
 const screenRegister = document.getElementById("screen-register");
 const playerForm = document.getElementById("player-form");
 const masterForm = document.getElementById("master-form");
-const avatarOptions = document.querySelectorAll(".avatar-option");
+
 const playerNameInput = document.getElementById("player-name");
-const playerPasswordInput = document.getElementById("player-password"); // novo input no HTML
+const playerPasswordInput = document.getElementById("player-password");
+const avatarOptions = document.querySelectorAll("#avatar-options .avatar-option");
+
 const masterPassInput = document.getElementById("master-pass");
+const masterAvatarOptions = document.querySelectorAll("#master-avatar-options .avatar-option");
 const enterPlayerBtn = document.getElementById("enter-player");
 const enterMasterBtn = document.getElementById("enter-master");
 
@@ -19,34 +23,21 @@ const sendBtn = document.getElementById("send");
 const adminPanel = document.getElementById("admin-panel");
 const btnClear = document.getElementById("btn-clear");
 const btnGlobalMute = document.getElementById("btn-global-mute");
-// btnMasterOnly removed in HTML
-const muteTarget = document.getElementById("mute-target"); // now a <select>
+const muteTarget = document.getElementById("mute-target");
 const btnMute = document.getElementById("btn-mute");
 const btnUnmute = document.getElementById("btn-unmute");
 const setNameInput = document.getElementById("set-name-input");
 const btnSetName = document.getElementById("btn-set-name");
-
 const usersList = document.getElementById("users-list");
 
 let selectedAvatar = null;
-let myName = null;
-let myRole = "player";
-let minhaAvatar = null;
-let serverState = { globalMuted: false };
 let selectedMasterAvatar = null;
+let myName = null;
+let myRole = null;
+let myUserId = null; // string
+let serverState = { globalMuted: false };
 
-document.querySelectorAll("#master-avatar-options .avatar-option")
-.forEach(img => {
-  img.addEventListener("click", () => {
-    document.querySelectorAll("#master-avatar-options .avatar-option")
-      .forEach(i => i.classList.remove("selected"));
-
-    img.classList.add("selected");
-    selectedMasterAvatar = img.dataset.avatar;
-  });
-});
-
-// helpers
+// mostrar aviso (toast)
 function mostrarAviso(texto) {
   const aviso = document.createElement("div");
   aviso.className = "toast-warning";
@@ -55,19 +46,26 @@ function mostrarAviso(texto) {
   setTimeout(() => aviso.remove(), 3000);
 }
 
-// tentar reautenticar se tiver token salvo
-const savedAuth = localStorage.getItem("chatAuth");
-if (savedAuth) {
-  socket.emit("resume", savedAuth);
-}
+// tentar resume com token salvo
+const savedToken = localStorage.getItem("chatAuth");
+if (savedToken) socket.emit("resume", savedToken);
 
-// avatar selection
+// avatar selection (player)
 avatarOptions.forEach(img => img.addEventListener("click", () => {
   avatarOptions.forEach(i => i.classList.remove("selected"));
   img.classList.add("selected");
   selectedAvatar = img.dataset.avatar;
   atualizarBotaoPlayer();
 }));
+
+// avatar selection (master)
+if (masterAvatarOptions) {
+  masterAvatarOptions.forEach(img => img.addEventListener("click", () => {
+    masterAvatarOptions.forEach(i => i.classList.remove("selected"));
+    img.classList.add("selected");
+    selectedMasterAvatar = img.dataset.avatar;
+  }));
+}
 
 // toggle forms
 document.querySelectorAll('input[name="role"]').forEach(r => {
@@ -89,7 +87,6 @@ function atualizarBotaoPlayer() {
   const senha = playerPasswordInput ? playerPasswordInput.value.trim() : "";
   enterPlayerBtn.disabled = !(nome && selectedAvatar && senha);
 }
-
 playerNameInput.addEventListener("input", atualizarBotaoPlayer);
 if (playerPasswordInput) playerPasswordInput.addEventListener("input", atualizarBotaoPlayer);
 
@@ -97,17 +94,15 @@ if (playerPasswordInput) playerPasswordInput.addEventListener("input", atualizar
 enterPlayerBtn.addEventListener("click", () => {
   const nome = playerNameInput.value.trim();
   const senha = playerPasswordInput.value.trim();
-  if (!nome || !selectedAvatar || !senha) return alert("Escolha avatar, nome e senha.");
+  if (!nome || !selectedAvatar || !senha) return mostrarAviso("Escolha avatar, nome e senha.");
   socket.emit("register", { role: "player", nome, avatar: selectedAvatar, senha });
 });
 
 // entrar como master
 enterMasterBtn.addEventListener("click", () => {
-  socket.emit("register", {
-    role: "master",
-    senha: masterPassInput.value,
-    avatar: selectedMasterAvatar
-  });
+  const senha = masterPassInput.value;
+  if (!senha) return mostrarAviso("Senha necessária.");
+  socket.emit("register", { role: "master", senha, avatar: selectedMasterAvatar });
 });
 
 // receber token de sessão
@@ -120,24 +115,17 @@ socket.on("authToken", (token) => {
 socket.on("registered", (dados) => {
   myName = dados.nome;
   myRole = dados.role || "player";
-  minhaAvatar = dados.avatar || null;
-
+  myUserId = dados._id || null;
   // troca de telas
   if (screenRegister) screenRegister.style.display = "none";
   if (screenChat) screenChat.style.display = "";
-
   // mostra painel admin se master
-  if (myRole === "master") {
-    adminPanel.style.display = "";
-  } else {
-    adminPanel.style.display = "none";
-  }
+  if (myRole === "master") adminPanel.style.display = "";
+  else adminPanel.style.display = "none";
 });
 
 // erros de registro
-socket.on("registerError", (msg) => {
-  alert("Erro registro: " + msg);
-});
+socket.on("registerError", (msg) => mostrarAviso(msg));
 
 // histórico
 socket.on("historico", (msgs) => {
@@ -146,9 +134,7 @@ socket.on("historico", (msgs) => {
 });
 
 // nova mensagem
-socket.on("mensagem", (m) => {
-  renderMsg(m);
-});
+socket.on("mensagem", (m) => renderMsg(m));
 
 // apagado / limpo
 socket.on("messageDeleted", (id) => {
@@ -164,9 +150,7 @@ socket.on("serverState", (st) => {
 });
 
 // aviso de mute
-socket.on("mutedWarning", (msg) => {
-  mostrarAviso(msg || "Você está silenciado.");
-});
+socket.on("mutedWarning", (msg) => mostrarAviso(msg || "Você está silenciado."));
 
 // online users update (dropdown + sidebar)
 socket.on("onlineUsers", (users) => {
@@ -176,7 +160,7 @@ socket.on("onlineUsers", (users) => {
     users.forEach(u => {
       if (u.role !== "master") {
         const opt = document.createElement("option");
-        opt.value = u.userId; // use userId
+        opt.value = u.userId || "";
         opt.textContent = u.nome + (u.muted ? " (silenciado)" : "");
         muteTarget.appendChild(opt);
       }
@@ -203,38 +187,62 @@ socket.on("onlineUsers", (users) => {
 
 // enviar mensagem
 sendBtn.addEventListener("click", () => {
-  if (!myName) return alert("Defina seu perfil primeiro.");
+  if (!myName) return mostrarAviso("Defina seu perfil primeiro.");
   const texto = msgInput.value.trim();
   if (!texto) return;
-  if (serverState.masterOnly && myRole !== "master") return alert("Somente o Mestre pode mandar mensagens agora.");
-  socket.emit("mensagem", { nome: myName, texto });
+  if (texto.length > 500) return mostrarAviso("Mensagem muito longa (máx 500 chars).");
+  socket.emit("mensagem", { texto });
   msgInput.value = "";
 });
 
-// render mensagens
+// render mensagens (com layout tipo WhatsApp simplificado)
 function renderMsg(m) {
   const li = document.createElement("li");
   li.dataset.id = m._id;
-  const hora = new Date(m.data).toLocaleTimeString();
-  li.textContent = `[${hora}] ${m.nome}: ${m.texto}`;
 
-  if (m.avatar) {
-    const img = document.createElement("img");
-    img.src = m.avatar;
-    img.className = "msg-avatar";
-    li.prepend(img);
-  }
+  const isMaster = m.role === "master";
+  const isMine = (m.autorId && myUserId && m.autorId.toString() === myUserId);
 
+  if (isMaster) li.classList.add("master");
+  if (isMine) li.classList.add("mine");
+
+  // avatar
+  const img = document.createElement("img");
+  img.src = m.avatar || "avatars/default.png";
+  img.className = "msg-avatar";
+  if (isMaster) img.classList.add("master-avatar");
+
+  // box
+  const box = document.createElement("div");
+  box.className = "msg-box";
+
+  const nome = document.createElement("div");
+  nome.className = "msg-name";
+  nome.textContent = m.nome;
+
+  const texto = document.createElement("div");
+  texto.className = "msg-text";
+  texto.textContent = m.texto;
+
+  const hora = document.createElement("div");
+  hora.className = "msg-time";
+  const data = new Date(m.data);
+  hora.textContent = data.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  box.appendChild(nome);
+  box.appendChild(texto);
+  box.appendChild(hora);
+
+  li.appendChild(img);
+  li.appendChild(box);
+
+  // if master can delete messages show delete button (client-side only)
   if (myRole === "master") {
     const btnDel = document.createElement("button");
     btnDel.textContent = "Apagar";
-    btnDel.addEventListener("click", () => {
-      socket.emit("deleteMessage", m._id);
-    });
+    btnDel.addEventListener("click", () => socket.emit("deleteMessage", m._id));
     li.appendChild(btnDel);
   }
-
-  if (m.muted) li.classList.add("msg-muted");
 
   chatList.appendChild(li);
   chatList.scrollTop = chatList.scrollHeight;
@@ -244,18 +252,6 @@ function renderMsg(m) {
 btnClear.addEventListener("click", () => {
   if (!confirm("Apagar todas as mensagens?")) return;
   socket.emit("clearAll");
-});
-
-const adminAvatarOptions = document.querySelectorAll("#admin-avatar-options .avatar-option");
-
-adminAvatarOptions.forEach(img => {
-  img.addEventListener("click", () => {
-
-    adminAvatarOptions.forEach(i => i.classList.remove("selected"));
-    img.classList.add("selected");
-
-    socket.emit("setMyAvatar", img.dataset.avatar);
-  });
 });
 
 btnGlobalMute.addEventListener("click", () => {
