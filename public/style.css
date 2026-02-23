@@ -247,6 +247,134 @@ button:hover { background: var(--brand-hover); }
 #btn-clear:hover { background: var(--brand-danger-hover); }
 #btn-global-mute { background: var(--brand-primary); }
 
+/* =========================================
+   MENSAGENS DO CHAT (renderMsg)
+========================================= */
+
+#chat li {
+  align-items: flex-end;
+  gap: 10px;
+  position: relative;
+}
+
+/* Minha mensagem (direita) */
+#chat li.mine {
+  flex-direction: row-reverse;
+}
+
+#chat li.mine .msg-box {
+  background: var(--brand-primary);
+}
+
+/* Mensagem do mestre */
+#chat li.master .msg-box {
+  background: var(--brand-master);
+  border: 1px solid var(--brand-warning);
+}
+
+/* Avatar */
+.msg-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.master-avatar {
+  box-shadow: 0 0 8px var(--brand-warning);
+}
+
+/* Caixa da mensagem */
+.msg-box {
+  background: var(--bg-element);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  max-width: 70%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Nome */
+.msg-name {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+/* Texto */
+.msg-text {
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Hora */
+.msg-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+/* Botão apagar (mestre) */
+#chat li button {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--brand-danger);
+  margin-left: 6px;
+  align-self: center;
+}
+
+#chat li button:hover {
+  background: var(--brand-danger-hover);
+}
+
+/* =========================================
+   USUÁRIOS ONLINE
+========================================= */
+
+.user-master {
+  color: var(--brand-warning);
+  font-weight: bold;
+}
+
+.badge-muted {
+  margin-left: auto;
+  font-size: 11px;
+  background: var(--brand-danger);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* =========================================
+   TOAST (avisos)
+========================================= */
+
+.toast-warning {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand-danger);
+  color: white;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  font-size: 14px;
+  z-index: 9999;
+  animation: fadeInOut 3s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, 10px); }
+  10% { opacity: 1; transform: translate(-50%, 0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 /* =========================================
    RESPONSIVIDADE (Tablets e Celulares)
@@ -291,4 +419,79 @@ button:hover { background: var(--brand-hover); }
   /* Melhora área de clique no celular */
   #chat-input { padding: 10px; }
   #chat-input input, #chat-input button { padding: 12px; }
+}
+
+/* ===== Ajustes móveis (melhora responsividade e áreas de clique) ===== */
+:root {
+  --mobile-avatar: 52px;
+  --mobile-avatar-small: 44px;
+  --mobile-font: 16px;
+  --mobile-small-font: 14px;
+  --mobile-gap: 12px;
+  --mobile-btn-pad: 14px 16px;
+}
+
+/* Base: usar um tamanho de fonte maior em telas pequenas */
+html { font-size: 16px; }
+
+/* Gatilho geral para celulares (ajuste fino abaixo) */
+@media (max-width: 600px) {
+  body { padding: 8px; }
+
+  /* Tela de registro */
+  #screen-register {
+    padding: 20px;
+    max-width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .avatar-grid { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 10px; padding: 10px; }
+  .avatar-grid.small { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); }
+
+  .avatar-option { min-height: 56px; border-width: 2px; }
+
+  /* Layout do chat */
+  #users-panel { height: 84px; padding: 12px; }
+  #users-list li { padding: 8px 10px; font-size: var(--mobile-small-font); }
+
+  #chat-container { border-radius: 0; }
+  #chat { padding: 12px; gap: var(--mobile-gap); }
+
+  /* Mensagens: aumentar avatar, fonte e bolhas */
+  .msg-avatar { width: var(--mobile-avatar); height: var(--mobile-avatar); }
+  .msg-box { padding: 10px 14px; max-width: 88%; border-radius: 10px; }
+  #chat li { padding: 10px; gap: 10px; }
+
+  .msg-name { font-size: 13px; margin-bottom: 6px; }
+  .msg-text { font-size: var(--mobile-font); line-height: 1.45; }
+  .msg-time { font-size: 12px; }
+
+  /* Botões e input de envio maiores (mais fácil de tocar) */
+  #chat-input { padding: 10px; gap: 8px; }
+  #chat-input input { font-size: 16px; padding: 12px; border-radius: 10px; }
+  #chat-input button { padding: var(--mobile-btn-pad); font-size: 16px; border-radius: 10px; }
+
+  button { font-size: 16px; padding: 12px; }
+
+  /* Painel do mestre -> empilhado e mais confortável */
+  #admin-panel { padding: 12px; max-height: 260px; }
+
+  /* Toast maior */
+  .toast-warning { font-size: 15px; padding: 14px 18px; bottom: 24px; }
+
+  /* Badges e labels */
+  .badge-muted { font-size: 12px; padding: 4px 8px; }
+
+  /* Aumenta touch area de list items no chat */
+  #chat li { min-height: 56px; }
+
+  /* Evita que imagens pequenas fiquem micro */
+  .avatar-option img, .msg-avatar { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+}
+
+/* Ajuste adicional para tablets grandes */
+@media (min-width: 601px) and (max-width: 960px) {
+  .msg-avatar { width: 44px; height: 44px; }
+  .msg-text { font-size: 15px; }
+  button { font-size: 15px; padding: 10px; }
 }
