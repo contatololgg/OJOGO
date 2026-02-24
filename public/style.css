@@ -206,31 +206,13 @@ button:hover { background: var(--brand-hover); }
   word-break: break-word;
 }
 
-/* MELHORIA 7: Indicador de digitação com animação */
+/* Indicador de digitação */
 #typing-msg {
   padding: 0 16px 8px 16px;
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
   min-height: 24px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-#typing-msg.active::after {
-  content: '';
-  width: 24px;
-  animation: typingAnimation 1.5s infinite;
-  letter-spacing: 2px;
-}
-
-@keyframes typingAnimation {
-  0% { content: ''; }
-  25% { content: '.'; }
-  50% { content: '..'; }
-  75% { content: '...'; }
-  100% { content: ''; }
 }
 
 /* ===== ÁREA DE INPUT DO CHAT (TEXTAREA) ===== */
@@ -239,7 +221,7 @@ button:hover { background: var(--brand-hover); }
   padding: 16px;
   background: var(--bg-main);
   gap: 8px;
-  align-items: flex-end;
+  align-items: flex-end; /* Para alinhar o botão com a base do textarea */
 }
 
 /* Estilo específico para o textarea */
@@ -253,10 +235,10 @@ button:hover { background: var(--brand-hover); }
   font-family: inherit;
   font-size: 14px;
   line-height: 1.5;
-  resize: none;
-  overflow-y: auto;
-  min-height: 44px;
-  max-height: 120px;
+  resize: none; /* Impede redimensionamento manual, mas permite scroll */
+  overflow-y: auto; /* Scroll vertical quando necessário */
+  min-height: 44px; /* Altura mínima para uma linha */
+  max-height: 120px; /* Altura máxima para 3-4 linhas */
   outline: none;
   transition: 0.2s;
 }
@@ -267,7 +249,7 @@ button:hover { background: var(--brand-hover); }
 
 #chat-input button {
   width: auto;
-  padding: 12px 24px;
+  padding: 12px 24px; /* Aumentei o padding para combinar com o textarea */
   border-radius: var(--radius-md);
   background: var(--brand-primary);
   color: white;
@@ -275,7 +257,7 @@ button:hover { background: var(--brand-hover); }
   border: none;
   cursor: pointer;
   transition: 0.2s;
-  align-self: flex-end;
+  align-self: flex-end; /* Alinha com a base */
 }
 
 #chat-input button:hover {
@@ -421,135 +403,45 @@ button:hover { background: var(--brand-hover); }
   100% { opacity: 0; }
 }
 
-/* ===== STATUS DE CONEXÃO ===== */
-.connection-status {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
-  z-index: 10000;
-  transition: all 0.3s;
-}
-
-.connection-status.connected {
-  background: #2ecc71;
-  color: white;
-  box-shadow: 0 2px 10px rgba(46, 204, 113, 0.3);
-}
-
-.connection-status.disconnected {
-  background: #e74c3c;
-  color: white;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
-}
-
-/* ===== OVERLAY DE DESCONEXÃO ===== */
-.disconnect-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(5px);
-  z-index: 20000;
-  display: flex;
-  justify-content: center;
+/* Animação de digitação (três pontinhos pulsantes) */
+.typing-dots {
+  display: inline-flex;
+  gap: 3px;
   align-items: center;
-  transition: all 0.3s;
+  margin-left: 4px;
 }
 
-.disconnect-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  background-color: var(--text-muted);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: typing-pulse 1.4s infinite ease-in-out;
 }
 
-.disconnect-message {
-  background: var(--bg-panel);
-  padding: 30px;
-  border-radius: var(--radius-lg);
-  text-align: center;
-  max-width: 400px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  animation: slideIn 0.3s;
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
 }
 
-.disconnect-message h3 {
-  color: var(--brand-warning);
-  margin-bottom: 10px;
-  font-size: 24px;
+@keyframes typing-pulse {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
+  30% { opacity: 1; transform: scale(1.2); }
 }
 
-.disconnect-message p {
+/* Ajuste no #typing-msg para centralizar verticalmente */
+#typing-msg {
+  display: flex;
+  align-items: center;
+  padding: 0 16px 8px 16px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-bottom: 20px;
-  font-size: 16px;
-}
-
-.disconnect-message button {
-  background: var(--brand-primary);
-  color: white;
-  border: none;
-  padding: 12px 30px;
-  border-radius: var(--radius-md);
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: auto;
-}
-
-.disconnect-message button:hover {
-  background: var(--brand-hover);
-  transform: scale(1.05);
-}
-
-/* Ajuste para mobile */
-@media (max-width: 600px) {
-  .connection-status {
-    top: 5px;
-    right: 5px;
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-  
-  .disconnect-message {
-    margin: 20px;
-    padding: 20px;
-  }
-  
-  .disconnect-message h3 {
-    font-size: 20px;
-  }
-  
-  .disconnect-message p {
-    font-size: 14px;
-  }
-  
-  .disconnect-message button {
-    padding: 10px 20px;
-    font-size: 14px;
-  }
+  font-style: italic;
+  min-height: 24px;
 }
 
 /* =========================================
@@ -607,7 +499,7 @@ html { font-size: 16px; }
     padding: var(--mobile-btn-pad);
     font-size: 16px;
     border-radius: 10px;
-    flex: 1;
+    flex: 1; /* Botão ocupa espaço proporcional em telas muito pequenas */
   }
   button { font-size: 16px; padding: 12px; }
   #admin-panel { padding: 12px; max-height: 260px; }

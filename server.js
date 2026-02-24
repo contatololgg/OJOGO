@@ -93,15 +93,20 @@ io.on("connection", (socket) => {
   // tentar restaurar sessão via token no Mongo
   socket.on("resume", async (token) => {
     try {
-      if (!token) return;
+      if (!token) {
+        socket.emit("resumeFailed");
+        return;
+      }
       const sess = await Sessao.findOne({ token });
-      if (!sess) return;
+      if (!sess) {
+        socket.emit("resumeFailed");
+        return;
+      }
 
       // Se for master e já existir um mestre online, desconecta o anterior
       if (sess.type === "master") {
         const existingMaster = Object.values(onlineUsers).find(u => u.role === "master");
         if (existingMaster) {
-          // Notifica o mestre antigo e o desconecta
           io.to(existingMaster.socketId).emit("kicked", "Um novo mestre conectou-se.");
           io.sockets.sockets.get(existingMaster.socketId)?.disconnect(true);
         }
@@ -109,9 +114,12 @@ io.on("connection", (socket) => {
 
       if (sess.type === "player") {
         const usuario = await Usuario.findById(sess.userId);
-        if (!usuario) return;
+        if (!usuario) {
+          socket.emit("resumeFailed");
+          return;
+        }
         socket.usuario = usuario;
-        socket.token = token; // guarda token para futuras atualizações
+        socket.token = token;
         onlineUsers[socket.id] = {
           socketId: socket.id,
           userId: usuario._id.toString(),
@@ -125,7 +133,6 @@ io.on("connection", (socket) => {
         io.emit("onlineUsers", Object.values(onlineUsers));
         console.log("Sessão player restaurada:", usuario.nome);
       } else if (sess.type === "master") {
-        // Cria objeto de usuário para o mestre
         socket.usuario = {
           _id: null,
           nome: sess.name || "Mestre",
@@ -149,6 +156,7 @@ io.on("connection", (socket) => {
       }
     } catch (e) {
       console.error("Erro resume:", e);
+      socket.emit("resumeFailed");
     }
   });
 
