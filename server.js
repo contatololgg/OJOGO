@@ -1,5 +1,4 @@
 // server.js
-// server.js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -32,15 +31,25 @@ const Mensagem = mongoose.model("Mensagem", mensagemSchema);
 const userSchema = new mongoose.Schema({
   nome: { type: String, unique: true },
   senha: { type: String, required: true },
-  role: { type: String, default: "player" }, // player ou master
+  role: { type: String, default: "player" },
   avatar: String,
   muted: { type: Boolean, default: false }
 });
 const Usuario = mongoose.model("Usuario", userSchema);
 
+// NOVO: Schema de Sessão para persistência
+const sessaoSchema = new mongoose.Schema({
+  token: { type: String, unique: true },
+  type: String, // 'player' | 'master'
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario", default: null },
+  name: String,
+  avatar: String,
+  createdAt: { type: Date, default: Date.now, expires: '7d' } // Auto-deleta após 7 dias
+});
+const Sessao = mongoose.model("Sessao", sessaoSchema);
+
 // Estado
 let onlineUsers = {};      // socketId -> { socketId, userId, nome, role, avatar, muted }
-let userSessions = {};     // token -> { type: 'player'|'master', userId?, name?, avatar? }
 let globalMuted = false;
 
 // Helpers
@@ -74,11 +83,11 @@ io.on("connection", (socket) => {
     }
   })();
 
-  // tentar restaurar sessão via token
+  // tentar restaurar sessão via token no Mongo
   socket.on("resume", async (token) => {
     try {
       if (!token) return;
-      const sess = userSessions[token];
+      const sess = await Sessao.findOne({ token });
       if (!sess) return;
 
       if (sess.type === "player") {
@@ -134,7 +143,6 @@ io.on("connection", (socket) => {
         const avatar = payload.avatar || null;
         const senha = payload.senha || "";
 
-        // validações
         if (!nome || !avatar || !senha) {
           socket.emit("registerError", "Nome, avatar e senha são obrigatórios.");
           return;
@@ -151,16 +159,9 @@ io.on("connection", (socket) => {
         let usuario = await Usuario.findOne({ nome });
 
         if (!usuario) {
-          // cria novo jogador
           const hash = await bcrypt.hash(senha, 10);
-          usuario = await Usuario.create({
-            nome,
-            senha: hash,
-            avatar,
-            role: "player"
-          });
+          usuario = await Usuario.create({ nome, senha: hash, avatar, role: "player" });
         } else {
-          // se já existe mas não é player → bloqueia
           if (usuario.role !== "player") {
             socket.emit("registerError", "Nome indisponível.");
             return;
@@ -172,9 +173,9 @@ io.on("connection", (socket) => {
           }
         }
 
-        // cria token de sessão e armazena
         const token = makeToken();
-        userSessions[token] = { type: "player", userId: usuario._id.toString() };
+        // Salva sessão no Mongo
+        await Sessao.create({ token, type: "player", userId: usuario._id });
 
         socket.usuario = usuario;
         onlineUsers[socket.id] = {
@@ -203,25 +204,16 @@ io.on("connection", (socket) => {
           return;
         }
 
-        // NÃO salva no banco; cria sessão na memória
         const token = makeToken();
-        userSessions[token] = { type: "master", name: "Mestre", avatar: avatar || null };
+        // Salva sessão no Mongo
+        await Sessao.create({ token, type: "master", name: "Mestre", avatar: avatar || null });
 
         socket.usuario = {
-          _id: null,
-          nome: "Mestre",
-          role: "master",
-          avatar: avatar || null,
-          muted: false
+          _id: null, nome: "Mestre", role: "master", avatar: avatar || null, muted: false
         };
 
         onlineUsers[socket.id] = {
-          socketId: socket.id,
-          userId: null,
-          nome: "Mestre",
-          role: "master",
-          avatar: avatar || null,
-          muted: false
+          socketId: socket.id, userId: null, nome: "Mestre", role: "master", avatar: avatar || null, muted: false
         };
 
         io.emit("onlineUsers", Object.values(onlineUsers));
@@ -237,14 +229,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Eventos de digitação (NOVO)
+  socket.on("typing", () => {
+    if (!socket.usuario) return;
+    socket.broadcast.emit("userTyping", { nome: socket.usuario.nome });
+  });
+
+  socket.on("stopTyping", () => {
+    socket.broadcast.emit("userStopTyping");
+  });
+
   // nova mensagem
   socket.on("mensagem", async (dados) => {
     try {
       if (!dados || !dados.texto) return;
       if (!socket.usuario) return;
 
-      // limita tamanho da mensagem
-      const texto = String(dados.texto).slice(0, 500);
+      const texto = String(dados.texto).trim().slice(0, 500);
+      if (texto.length === 0) return; // Segurança extra contra msgs vazias
 
       const isMaster = socket.usuario.role === "master";
 
@@ -253,7 +255,6 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // verifica status atualizado no DB (para muted) - apenas para players
       if (socket.usuario._id) {
         const usuarioAtual = await Usuario.findById(socket.usuario._id);
         if (usuarioAtual && usuarioAtual.muted && !isMaster) {
@@ -277,29 +278,25 @@ io.on("connection", (socket) => {
     }
   });
 
-  // apagar mensagem (master)
+  // apagar mensagem
   socket.on("deleteMessage", async (id) => {
     try {
       if (!socket.usuario || socket.usuario.role !== "master") return;
       await Mensagem.findByIdAndDelete(id);
       io.emit("messageDeleted", id);
-    } catch (e) {
-      console.error("Erro deleteMessage:", e);
-    }
+    } catch (e) { console.error("Erro deleteMessage:", e); }
   });
 
-  // limpar tudo (master)
+  // limpar tudo
   socket.on("clearAll", async () => {
     try {
       if (!socket.usuario || socket.usuario.role !== "master") return;
       await Mensagem.deleteMany({});
       io.emit("cleared");
-    } catch (e) {
-      console.error("Erro clearAll:", e);
-    }
+    } catch (e) { console.error("Erro clearAll:", e); }
   });
 
-  // silenciar / dessilenciar por userId (master)
+  // silenciar / dessilenciar
   socket.on("muteUser", async ({ userId, mute }) => {
     try {
       if (!socket.usuario || socket.usuario.role !== "master") return;
@@ -307,21 +304,17 @@ io.on("connection", (socket) => {
 
       await Usuario.findByIdAndUpdate(userId, { muted: !!mute });
 
-      // atualizar onlineUsers e notificar o socket do user
       for (let sid in onlineUsers) {
         if (onlineUsers[sid].userId && onlineUsers[sid].userId.toString() === userId) {
           onlineUsers[sid].muted = !!mute;
           io.to(sid).emit("userMuted", { mute: !!mute });
         }
       }
-
       io.emit("onlineUsers", Object.values(onlineUsers));
-    } catch (e) {
-      console.error("Erro muteUser:", e);
-    }
+    } catch (e) { console.error("Erro muteUser:", e); }
   });
 
-  // global mute toggle (master)
+  // global mute toggle
   socket.on("setGlobalMute", ({ value }) => {
     if (!socket.usuario || socket.usuario.role !== "master") return;
     globalMuted = !!value;
@@ -329,41 +322,29 @@ io.on("connection", (socket) => {
   });
 
   // troca de nome do master
-  socket.on("setMyName", (novoNome) => {
+  socket.on("setMyName", async (novoNome) => {
     if (!socket.usuario || socket.usuario.role !== "master") return;
     const trimmed = String(novoNome || "").trim().slice(0, 20);
     socket.usuario.nome = trimmed || "Mestre";
     if (onlineUsers[socket.id]) {
       onlineUsers[socket.id].nome = socket.usuario.nome;
     }
-    // atualizar sessão master (se tiver token)
-    for (const t in userSessions) {
-      if (userSessions[t].type === "master") {
-        // find matching by socket: best-effort: if onlineUsers[socket.id].userId===null and names match
-        // We'll update any master session names to the new name to keep resume consistent for the active master
-        userSessions[t].name = socket.usuario.nome;
-      }
-    }
+    // Atualiza nome nas sessões master do banco
+    await Sessao.updateMany({ type: "master" }, { name: socket.usuario.nome });
+    
     io.emit("onlineUsers", Object.values(onlineUsers));
     socket.emit("registered", socket.usuario);
   });
 
   // trocar avatar do master
-  socket.on("setMyAvatar", (novoAvatar) => {
+  socket.on("setMyAvatar", async (novoAvatar) => {
     if (!socket.usuario || socket.usuario.role !== "master") return;
-
     socket.usuario.avatar = novoAvatar;
-
     if (onlineUsers[socket.id]) {
       onlineUsers[socket.id].avatar = novoAvatar;
     }
-
-    // atualizar sessão master avatar
-    for (const t in userSessions) {
-      if (userSessions[t].type === "master") {
-        userSessions[t].avatar = novoAvatar;
-      }
-    }
+    // Atualiza avatar nas sessões master do banco
+    await Sessao.updateMany({ type: "master" }, { avatar: novoAvatar });
 
     io.emit("onlineUsers", Object.values(onlineUsers));
   });
@@ -375,6 +356,5 @@ io.on("connection", (socket) => {
   });
 });
 
-// start
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log("Server rodando na porta", PORT));

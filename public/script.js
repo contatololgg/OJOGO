@@ -34,8 +34,13 @@ let selectedAvatar = null;
 let selectedMasterAvatar = null;
 let myName = null;
 let myRole = null;
-let myUserId = null; // string
+let myUserId = null; 
 let serverState = { globalMuted: false };
+
+// Criação do elemento de "Digitando..." na tela
+const typingIndicator = document.createElement("div");
+typingIndicator.id = "typing-msg";
+document.getElementById("chat-container").insertBefore(typingIndicator, msgInput.parentElement);
 
 // mostrar aviso (toast)
 function mostrarAviso(texto) {
@@ -80,7 +85,6 @@ document.querySelectorAll('input[name="role"]').forEach(r => {
   });
 });
 
-// bloquear botão entrar até escolher avatar+nome+senha
 enterPlayerBtn.disabled = true;
 function atualizarBotaoPlayer() {
   const nome = playerNameInput.value.trim();
@@ -90,7 +94,7 @@ function atualizarBotaoPlayer() {
 playerNameInput.addEventListener("input", atualizarBotaoPlayer);
 if (playerPasswordInput) playerPasswordInput.addEventListener("input", atualizarBotaoPlayer);
 
-// entrar como player (cria conta ou faz login)
+// entrar como player
 enterPlayerBtn.addEventListener("click", () => {
   const nome = playerNameInput.value.trim();
   const senha = playerPasswordInput.value.trim();
@@ -116,10 +120,8 @@ socket.on("registered", (dados) => {
   myName = dados.nome;
   myRole = dados.role || "player";
   myUserId = dados._id || null;
-  // troca de telas
   if (screenRegister) screenRegister.style.display = "none";
   if (screenChat) screenChat.style.display = "";
-  // mostra painel admin se master
   if (myRole === "master") adminPanel.style.display = "";
   else adminPanel.style.display = "none";
 });
@@ -143,18 +145,14 @@ socket.on("messageDeleted", (id) => {
 });
 socket.on("cleared", () => { chatList.innerHTML = ""; });
 
-// estado do servidor
 socket.on("serverState", (st) => {
   serverState = st || { globalMuted: false };
   btnGlobalMute.textContent = serverState.globalMuted ? "Desilenciar todos" : "Silenciar todos";
 });
 
-// aviso de mute
 socket.on("mutedWarning", (msg) => mostrarAviso(msg || "Você está silenciado."));
 
-// online users update (dropdown + sidebar)
 socket.on("onlineUsers", (users) => {
-  // dropdown (mute target)
   if (muteTarget) {
     muteTarget.innerHTML = "";
     users.forEach(u => {
@@ -167,7 +165,6 @@ socket.on("onlineUsers", (users) => {
     });
   }
 
-  // sidebar list
   if (usersList) {
     usersList.innerHTML = "";
     users.forEach(u => {
@@ -185,24 +182,49 @@ socket.on("onlineUsers", (users) => {
   }
 });
 
-// enviar mensagem
-sendBtn.addEventListener("click", () => {
+// ===== Lógica de envio unificada e corrigida =====
+function enviarMensagem() {
   if (!myName) return mostrarAviso("Defina seu perfil primeiro.");
-  const texto = msgInput.value.trim();
-  if (!texto) return;
+  
+  const texto = msgInput.value.trim(); // validação: limpa espaços
+  
+  if (!texto) return; // não envia se vazio
   if (texto.length > 500) return mostrarAviso("Mensagem muito longa (máx 500 chars).");
+  
   socket.emit("mensagem", { texto });
   msgInput.value = "";
-});
+  
+  socket.emit("stopTyping"); // Para o aviso de digitando na hora
+}
+
+sendBtn.addEventListener("click", enviarMensagem);
 
 msgInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    enviarMensagem();
+    enviarMensagem(); // Agora chama a função correta
   }
 });
 
-// render mensagens (com layout tipo WhatsApp simplificado)
+// ===== Lógica de Digitando =====
+let typingTimer;
+msgInput.addEventListener("input", () => {
+  socket.emit("typing");
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    socket.emit("stopTyping");
+  }, 2000); // Para de mostrar após 2 seg sem digitar
+});
+
+socket.on("userTyping", (dados) => {
+  typingIndicator.textContent = `${dados.nome} está digitando...`;
+});
+
+socket.on("userStopTyping", () => {
+  typingIndicator.textContent = ""; // Limpa a mensagem
+});
+
+// render mensagens
 function renderMsg(m) {
   const li = document.createElement("li");
   li.dataset.id = m._id;
@@ -213,13 +235,11 @@ function renderMsg(m) {
   if (isMaster) li.classList.add("master");
   if (isMine) li.classList.add("mine");
 
-  // avatar
   const img = document.createElement("img");
   img.src = m.avatar || "avatars/default.png";
   img.className = "msg-avatar";
-  if (isMaster) img.classList.add("master-avatar");
+  // Classe removida do JS: img.classList.add("master-avatar"); para tirar o contorno
 
-  // box
   const box = document.createElement("div");
   box.className = "msg-box";
 
@@ -243,7 +263,6 @@ function renderMsg(m) {
   li.appendChild(img);
   li.appendChild(box);
 
-  // if master can delete messages show delete button (client-side only)
   if (myRole === "master") {
     const btnDel = document.createElement("button");
     btnDel.textContent = "Apagar";
