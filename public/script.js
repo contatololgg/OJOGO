@@ -1,5 +1,11 @@
 // script.js
-const socket = io();
+const socket = io({
+  reconnection: true,
+  reconnectionAttempts: 10,        // Tenta reconectar 10 vezes
+  reconnectionDelay: 1000,          // 1 segundo entre tentativas
+  reconnectionDelayMax: 5000,        // Máximo de 5 segundos
+  timeout: 10000                     // Timeout de 10 segundos
+});
 
 // UI elements
 const screenRegister = document.getElementById("screen-register");
@@ -30,7 +36,7 @@ const setNameInput = document.getElementById("set-name-input");
 const btnSetName = document.getElementById("btn-set-name");
 const usersList = document.getElementById("users-list");
 
-// Avatares do admin (para trocar)
+// Avatares do admin
 const adminAvatarOptions = document.querySelectorAll("#admin-avatar-options .avatar-option");
 
 let selectedAvatar = null;
@@ -39,17 +45,81 @@ let myName = null;
 let myRole = null;
 let myUserId = null; 
 let serverState = { globalMuted: false };
+let isConnected = true; // Estado de conexão
 
-// ===== NOVO: Cache para timestamps =====
-const mensagensCache = new Map(); // id -> dados da mensagem
+// Cache para timestamps
+const mensagensCache = new Map();
 
-// Criação do elemento de "Digitando..." na tela
+// Elemento de status de conexão
+const connectionStatus = document.createElement("div");
+connectionStatus.id = "connection-status";
+connectionStatus.className = "connection-status connected";
+connectionStatus.textContent = "Conectado";
+document.body.appendChild(connectionStatus);
+
+// Overlay de desconexão
+const disconnectOverlay = document.createElement("div");
+disconnectOverlay.id = "disconnect-overlay";
+disconnectOverlay.className = "disconnect-overlay hidden";
+disconnectOverlay.innerHTML = `
+  <div class="disconnect-message">
+    <h3>🔌 Conexão perdida</h3>
+    <p>Tentando reconectar automaticamente...</p>
+    <button id="force-reconnect">Tentar agora</button>
+  </div>
+`;
+document.body.appendChild(disconnectOverlay);
+
+// Criação do elemento de "Digitando..."
 const typingIndicator = document.createElement("div");
 typingIndicator.id = "typing-msg";
 document.getElementById("chat-container").insertBefore(typingIndicator, msgInput.parentElement);
 
 // Dicionário para controlar múltiplos usuários digitando
 let typingUsers = {};
+
+// ===== FUNÇÕES DE CONTROLE DE CONEXÃO =====
+function atualizarEstadoConexao(conectado) {
+  isConnected = conectado;
+  
+  // Atualiza status visual
+  const statusEl = document.getElementById("connection-status");
+  const overlayEl = document.getElementById("disconnect-overlay");
+  
+  if (conectado) {
+    statusEl.textContent = "Conectado";
+    statusEl.className = "connection-status connected";
+    overlayEl.classList.add("hidden");
+    
+    // Reabilitar inputs
+    msgInput.disabled = false;
+    sendBtn.disabled = false;
+    if (myRole === "master") {
+      document.querySelectorAll('#admin-panel button, #admin-panel select, #admin-panel input').forEach(el => {
+        el.disabled = false;
+      });
+    }
+  } else {
+    statusEl.textContent = "Desconectado";
+    statusEl.className = "connection-status disconnected";
+    overlayEl.classList.remove("hidden");
+    
+    // Desabilitar inputs
+    msgInput.disabled = true;
+    sendBtn.disabled = true;
+    if (myRole === "master") {
+      document.querySelectorAll('#admin-panel button, #admin-panel select, #admin-panel input').forEach(el => {
+        el.disabled = true;
+      });
+    }
+  }
+}
+
+// Forçar reconexão manual
+document.getElementById("force-reconnect")?.addEventListener("click", () => {
+  socket.connect();
+  mostrarAviso("Tentando reconectar...");
+});
 
 // mostrar aviso (toast)
 function mostrarAviso(texto) {
@@ -60,33 +130,69 @@ function mostrarAviso(texto) {
   setTimeout(() => aviso.remove(), 3000);
 }
 
-// MELHORIA 2: Feedback de conexão
-socket.on("connect", () => {
-  console.log("Conectado ao servidor");
-  // Não mostramos toast na conexão inicial para não poluir
-});
-
-socket.on("disconnect", () => {
-  mostrarAviso("⚠️ Conexão perdida. Tentando reconectar...");
-});
-
-socket.on("reconnect", () => {
-  mostrarAviso("✅ Reconectado com sucesso!");
-});
-
-socket.on("reconnect_attempt", () => {
-  // Opcional: mostrar tentativa
-});
-
-socket.on("reconnect_error", () => {
-  mostrarAviso("❌ Erro ao reconectar. Verifique sua internet.");
-});
-
 // tentar resume com token salvo
 const savedToken = localStorage.getItem("chatAuth");
 if (savedToken) socket.emit("resume", savedToken);
 
-// avatar selection (player)
+// ===== EVENTOS DE CONEXÃO DO SOCKET =====
+socket.on("connect", () => {
+  console.log("Conectado ao servidor");
+  atualizarEstadoConexao(true);
+  mostrarAviso("✅ Conectado ao servidor");
+  
+  // Se já estava logado, pedir histórico e estado novamente
+  if (myName) {
+    socket.emit("resume", localStorage.getItem("chatAuth"));
+  }
+});
+
+socket.on("disconnect", (reason) => {
+  console.log("Desconectado:", reason);
+  atualizarEstadoConexao(false);
+  
+  if (reason === "io server disconnect") {
+    // Desconexão iniciada pelo servidor
+    mostrarAviso("❌ Desconectado pelo servidor");
+  } else {
+    mostrarAviso("⚠️ Conexão perdida. Reconectando...");
+  }
+});
+
+socket.on("reconnect", (attemptNumber) => {
+  console.log("Reconectado após", attemptNumber, "tentativas");
+  mostrarAviso("✅ Reconectado com sucesso!");
+  
+  // Restaurar sessão
+  const token = localStorage.getItem("chatAuth");
+  if (token) {
+    socket.emit("resume", token);
+  }
+});
+
+socket.on("reconnect_attempt", (attemptNumber) => {
+  console.log("Tentativa de reconexão", attemptNumber);
+  // Opcional: atualizar status
+  document.getElementById("connection-status").textContent = `Reconectando (${attemptNumber}/10)...`;
+});
+
+socket.on("reconnect_error", (error) => {
+  console.error("Erro na reconexão:", error);
+  mostrarAviso("❌ Erro ao reconectar. Verifique sua internet.");
+});
+
+socket.on("reconnect_failed", () => {
+  console.log("Falha na reconexão");
+  mostrarAviso("❌ Não foi possível reconectar. Recarregue a página.");
+  
+  // Mostrar botão de recarregar
+  const overlay = document.getElementById("disconnect-overlay");
+  overlay.querySelector('h3').textContent = "❌ Falha na conexão";
+  overlay.querySelector('p').textContent = "Clique no botão para recarregar";
+  overlay.querySelector('button').textContent = "Recarregar página";
+  overlay.querySelector('button').onclick = () => window.location.reload();
+});
+
+// ===== AVATAR SELECTION =====
 avatarOptions.forEach(img => img.addEventListener("click", () => {
   avatarOptions.forEach(i => i.classList.remove("selected"));
   img.classList.add("selected");
@@ -94,7 +200,6 @@ avatarOptions.forEach(img => img.addEventListener("click", () => {
   atualizarBotaoPlayer();
 }));
 
-// avatar selection (master na tela de login)
 if (masterAvatarOptions) {
   masterAvatarOptions.forEach(img => img.addEventListener("click", () => {
     masterAvatarOptions.forEach(i => i.classList.remove("selected"));
@@ -103,14 +208,17 @@ if (masterAvatarOptions) {
   }));
 }
 
-// avatar selection (admin panel)
 if (adminAvatarOptions) {
   adminAvatarOptions.forEach(img => img.addEventListener("click", () => {
+    if (!isConnected) {
+      mostrarAviso("Sem conexão. Aguarde reconectar.");
+      return;
+    }
     adminAvatarOptions.forEach(i => i.classList.remove("selected"));
     img.classList.add("selected");
     const novoAvatar = img.dataset.avatar;
     socket.emit("setMyAvatar", novoAvatar);
-    mostrarAviso("Avatar alterado!"); // Feedback visual
+    mostrarAviso("Avatar alterado!");
   }));
 }
 
@@ -138,6 +246,10 @@ if (playerPasswordInput) playerPasswordInput.addEventListener("input", atualizar
 
 // entrar como player
 enterPlayerBtn.addEventListener("click", () => {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão com o servidor. Aguarde...");
+    return;
+  }
   const nome = playerNameInput.value.trim();
   const senha = playerPasswordInput.value.trim();
   if (!nome || !selectedAvatar || !senha) return mostrarAviso("Escolha avatar, nome e senha.");
@@ -146,6 +258,10 @@ enterPlayerBtn.addEventListener("click", () => {
 
 // entrar como master
 enterMasterBtn.addEventListener("click", () => {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão com o servidor. Aguarde...");
+    return;
+  }
   const senha = masterPassInput.value;
   if (!senha) return mostrarAviso("Senha necessária.");
   socket.emit("register", { role: "master", senha, avatar: selectedMasterAvatar });
@@ -171,7 +287,7 @@ socket.on("registered", (dados) => {
 // erros de registro
 socket.on("registerError", (msg) => mostrarAviso(msg));
 
-// evento kicked (quando um novo mestre se conecta)
+// evento kicked
 socket.on("kicked", (msg) => {
   mostrarAviso(msg || "Você foi desconectado por outro mestre.");
   setTimeout(() => {
@@ -190,13 +306,14 @@ socket.on("mensagem", (m) => renderMsg(m));
 
 // apagado / limpo
 socket.on("messageDeleted", (id) => {
-  mensagensCache.delete(id); // <-- ADICIONE ESTA LINHA
+  mensagensCache.delete(id);
   const li = document.querySelector(`li[data-id="${id}"]`);
   if (li) li.remove();
 });
+
 socket.on("cleared", () => { 
   chatList.innerHTML = "";
-  mensagensCache.clear(); // <-- ADICIONE ESTA LINHA
+  mensagensCache.clear();
 });
 
 socket.on("serverState", (st) => {
@@ -236,8 +353,12 @@ socket.on("onlineUsers", (users) => {
   }
 });
 
-// ===== Lógica de envio =====
+// ===== Lógica de envio com verificação de conexão =====
 function enviarMensagem() {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão. Aguarde reconectar.");
+    return;
+  }
   if (!myName) return mostrarAviso("Defina seu perfil primeiro.");
   
   const texto = msgInput.value.trim();
@@ -247,11 +368,8 @@ function enviarMensagem() {
   
   socket.emit("mensagem", { texto });
   msgInput.value = "";
-  
-  socket.emit("stopTyping");
-  
-  // Reset altura do textarea
   msgInput.style.height = 'auto';
+  socket.emit("stopTyping");
 }
 
 sendBtn.addEventListener("click", enviarMensagem);
@@ -263,16 +381,17 @@ msgInput.addEventListener("keydown", (e) => {
   }
 });
 
-// Auto-resize do textarea (melhoria adicional)
+// Auto-resize do textarea
 function autoResizeTextarea() {
   msgInput.style.height = 'auto';
   msgInput.style.height = (msgInput.scrollHeight) + 'px';
 }
 msgInput.addEventListener('input', autoResizeTextarea);
 
-// ===== Lógica de Digitando Melhorada com animação =====
+// ===== Lógica de Digitando =====
 let typingTimer;
 msgInput.addEventListener("input", () => {
+  if (!isConnected) return;
   socket.emit("typing");
   clearTimeout(typingTimer);
   typingTimer = setTimeout(() => {
@@ -280,7 +399,6 @@ msgInput.addEventListener("input", () => {
   }, 2000);
 });
 
-// Função para atualizar o texto do indicador de digitação
 function atualizarTypingIndicator() {
   const nomes = Object.keys(typingUsers);
   if (nomes.length === 0) {
@@ -318,24 +436,26 @@ socket.on("userStopTyping", (dados) => {
   }
 });
 
-// MELHORIA 8: render mensagens com timestamps relativos
+// ===== Timestamps =====
 function formatarData(data) {
   const dataMsg = new Date(data);
-  const hoje = new Date();
-  const diferencaDias = Math.floor((hoje - dataMsg) / (1000 * 60 * 60 * 24));
-  
-  // Ajustar para considerar apenas datas (ignorar horário)
-  const dataMsgSemHorario = new Date(dataMsg.getFullYear(), dataMsg.getMonth(), dataMsg.getDate());
-  const hojeSemHorario = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  const diffDias = Math.floor((hojeSemHorario - dataMsgSemHorario) / (1000 * 60 * 60 * 24));
+  const agora = new Date();
+  const diferencaMs = agora - dataMsg;
+  const diferencaMinutos = Math.floor(diferencaMs / (1000 * 60));
+  const diferencaHoras = Math.floor(diferencaMs / (1000 * 60 * 60));
+  const diferencaDias = Math.floor(diferencaMs / (1000 * 60 * 60 * 24));
   
   const horario = dataMsg.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
-  if (diffDias === 0) {
+  if (diferencaMinutos < 1) {
+    return "Agora mesmo";
+  } else if (diferencaMinutos < 60) {
+    return `${diferencaMinutos} min atrás`;
+  } else if (diferencaHoras < 24) {
     return `Hoje às ${horario}`;
-  } else if (diffDias === 1) {
+  } else if (diferencaHoras < 48) {
     return `Ontem às ${horario}`;
-  } else if (diffDias < 7) {
+  } else if (diferencaDias < 7) {
     const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     return `${dias[dataMsg.getDay()]} às ${horario}`;
   } else {
@@ -344,6 +464,8 @@ function formatarData(data) {
 }
 
 function renderMsg(m) {
+  mensagensCache.set(m._id, m);
+  
   const li = document.createElement("li");
   li.dataset.id = m._id;
 
@@ -370,7 +492,7 @@ function renderMsg(m) {
 
   const hora = document.createElement("div");
   hora.className = "msg-time";
-  hora.textContent = formatarData(m.data); // MELHORIA 8
+  hora.textContent = formatarData(m.data);
 
   box.appendChild(nome);
   box.appendChild(texto);
@@ -382,7 +504,13 @@ function renderMsg(m) {
   if (myRole === "master") {
     const btnDel = document.createElement("button");
     btnDel.textContent = "Apagar";
-    btnDel.addEventListener("click", () => socket.emit("deleteMessage", m._id));
+    btnDel.addEventListener("click", () => {
+      if (!isConnected) {
+        mostrarAviso("Sem conexão. Aguarde.");
+        return;
+      }
+      socket.emit("deleteMessage", m._id);
+    });
     li.appendChild(btnDel);
   }
 
@@ -390,17 +518,29 @@ function renderMsg(m) {
   chatList.scrollTop = chatList.scrollHeight;
 }
 
-/* ===== admin actions ===== */
+// ===== Admin actions com verificação de conexão =====
 btnClear.addEventListener("click", () => {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão. Aguarde.");
+    return;
+  }
   if (!confirm("Apagar todas as mensagens?")) return;
   socket.emit("clearAll");
 });
 
 btnGlobalMute.addEventListener("click", () => {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão. Aguarde.");
+    return;
+  }
   socket.emit("setGlobalMute", { value: !serverState.globalMuted });
 });
 
 btnMute.addEventListener("click", () => {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão. Aguarde.");
+    return;
+  }
   const targetUserId = muteTarget.value;
   if (!targetUserId) {
     mostrarAviso("Selecione um jogador para silenciar.");
@@ -410,6 +550,10 @@ btnMute.addEventListener("click", () => {
 });
 
 btnUnmute.addEventListener("click", () => {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão. Aguarde.");
+    return;
+  }
   const targetUserId = muteTarget.value;
   if (!targetUserId) {
     mostrarAviso("Selecione um jogador para dessilenciar.");
@@ -419,13 +563,17 @@ btnUnmute.addEventListener("click", () => {
 });
 
 btnSetName.addEventListener("click", () => {
+  if (!isConnected) {
+    mostrarAviso("Sem conexão. Aguarde.");
+    return;
+  }
   const novo = setNameInput.value.trim();
   if (!novo) return;
   socket.emit("setMyName", novo);
   setNameInput.value = "";
 });
 
-// ===== ATUALIZAÇÃO AUTOMÁTICA DE TIMESTAMPS =====
+// ===== Atualização automática de timestamps =====
 function atualizarTimestamps() {
   document.querySelectorAll('#chat li').forEach(li => {
     const msgId = li.dataset.id;
@@ -439,12 +587,13 @@ function atualizarTimestamps() {
   });
 }
 
-// Atualizar timestamps a cada minuto
-setInterval(atualizarTimestamps, 60000); // 60 segundos
+setInterval(atualizarTimestamps, 60000);
 
-// Atualizar quando o usuário voltar à aba
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     atualizarTimestamps();
   }
 });
+
+// Inicializar como conectado
+atualizarEstadoConexao(true);
