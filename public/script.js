@@ -40,6 +40,9 @@ let myRole = null;
 let myUserId = null; 
 let serverState = { globalMuted: false };
 
+// ===== NOVO: Cache para timestamps =====
+const mensagensCache = new Map(); // id -> dados da mensagem
+
 // Criação do elemento de "Digitando..." na tela
 const typingIndicator = document.createElement("div");
 typingIndicator.id = "typing-msg";
@@ -187,10 +190,14 @@ socket.on("mensagem", (m) => renderMsg(m));
 
 // apagado / limpo
 socket.on("messageDeleted", (id) => {
+  mensagensCache.delete(id); // <-- ADICIONE ESTA LINHA
   const li = document.querySelector(`li[data-id="${id}"]`);
   if (li) li.remove();
 });
-socket.on("cleared", () => { chatList.innerHTML = ""; });
+socket.on("cleared", () => { 
+  chatList.innerHTML = "";
+  mensagensCache.clear(); // <-- ADICIONE ESTA LINHA
+});
 
 socket.on("serverState", (st) => {
   serverState = st || { globalMuted: false };
@@ -416,4 +423,28 @@ btnSetName.addEventListener("click", () => {
   if (!novo) return;
   socket.emit("setMyName", novo);
   setNameInput.value = "";
+});
+
+// ===== ATUALIZAÇÃO AUTOMÁTICA DE TIMESTAMPS =====
+function atualizarTimestamps() {
+  document.querySelectorAll('#chat li').forEach(li => {
+    const msgId = li.dataset.id;
+    const dados = mensagensCache.get(msgId);
+    if (dados) {
+      const timeElement = li.querySelector('.msg-time');
+      if (timeElement) {
+        timeElement.textContent = formatarData(new Date(dados.data));
+      }
+    }
+  });
+}
+
+// Atualizar timestamps a cada minuto
+setInterval(atualizarTimestamps, 60000); // 60 segundos
+
+// Atualizar quando o usuário voltar à aba
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    atualizarTimestamps();
+  }
 });
