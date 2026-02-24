@@ -30,6 +30,9 @@ const setNameInput = document.getElementById("set-name-input");
 const btnSetName = document.getElementById("btn-set-name");
 const usersList = document.getElementById("users-list");
 
+// Avatares do admin (para trocar)
+const adminAvatarOptions = document.querySelectorAll("#admin-avatar-options .avatar-option");
+
 let selectedAvatar = null;
 let selectedMasterAvatar = null;
 let myName = null;
@@ -41,6 +44,9 @@ let serverState = { globalMuted: false };
 const typingIndicator = document.createElement("div");
 typingIndicator.id = "typing-msg";
 document.getElementById("chat-container").insertBefore(typingIndicator, msgInput.parentElement);
+
+// Dicionário para controlar múltiplos usuários digitando
+let typingUsers = {};
 
 // mostrar aviso (toast)
 function mostrarAviso(texto) {
@@ -63,12 +69,22 @@ avatarOptions.forEach(img => img.addEventListener("click", () => {
   atualizarBotaoPlayer();
 }));
 
-// avatar selection (master)
+// avatar selection (master na tela de login)
 if (masterAvatarOptions) {
   masterAvatarOptions.forEach(img => img.addEventListener("click", () => {
     masterAvatarOptions.forEach(i => i.classList.remove("selected"));
     img.classList.add("selected");
     selectedMasterAvatar = img.dataset.avatar;
+  }));
+}
+
+// avatar selection (admin panel) - NOVO
+if (adminAvatarOptions) {
+  adminAvatarOptions.forEach(img => img.addEventListener("click", () => {
+    adminAvatarOptions.forEach(i => i.classList.remove("selected"));
+    img.classList.add("selected");
+    const novoAvatar = img.dataset.avatar;
+    socket.emit("setMyAvatar", novoAvatar);
   }));
 }
 
@@ -129,6 +145,15 @@ socket.on("registered", (dados) => {
 // erros de registro
 socket.on("registerError", (msg) => mostrarAviso(msg));
 
+// evento kicked (quando um novo mestre se conecta)
+socket.on("kicked", (msg) => {
+  mostrarAviso(msg || "Você foi desconectado por outro mestre.");
+  // Opcional: redirecionar para tela de login
+  setTimeout(() => {
+    window.location.reload(); // ou voltar para tela de registro
+  }, 2000);
+});
+
 // histórico
 socket.on("historico", (msgs) => {
   chatList.innerHTML = "";
@@ -154,7 +179,7 @@ socket.on("mutedWarning", (msg) => mostrarAviso(msg || "Você está silenciado."
 
 socket.on("onlineUsers", (users) => {
   if (muteTarget) {
-    muteTarget.innerHTML = "";
+    muteTarget.innerHTML = '<option value="">Selecione um jogador</option>'; // opção vazia
     users.forEach(u => {
       if (u.role !== "master") {
         const opt = document.createElement("option");
@@ -182,13 +207,13 @@ socket.on("onlineUsers", (users) => {
   }
 });
 
-// ===== Lógica de envio unificada e corrigida =====
+// ===== Lógica de envio =====
 function enviarMensagem() {
   if (!myName) return mostrarAviso("Defina seu perfil primeiro.");
   
-  const texto = msgInput.value.trim(); // validação: limpa espaços
+  const texto = msgInput.value.trim();
   
-  if (!texto) return; // não envia se vazio
+  if (!texto) return;
   if (texto.length > 500) return mostrarAviso("Mensagem muito longa (máx 500 chars).");
   
   socket.emit("mensagem", { texto });
@@ -202,26 +227,57 @@ sendBtn.addEventListener("click", enviarMensagem);
 msgInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    enviarMensagem(); // Agora chama a função correta
+    enviarMensagem();
   }
 });
 
-// ===== Lógica de Digitando =====
+// ===== Lógica de Digitando Melhorada =====
 let typingTimer;
 msgInput.addEventListener("input", () => {
   socket.emit("typing");
   clearTimeout(typingTimer);
   typingTimer = setTimeout(() => {
     socket.emit("stopTyping");
-  }, 2000); // Para de mostrar após 2 seg sem digitar
+  }, 2000);
 });
+
+// Função para atualizar o texto do indicador de digitação
+function atualizarTypingIndicator() {
+  const nomes = Object.keys(typingUsers);
+  if (nomes.length === 0) {
+    typingIndicator.textContent = "";
+  } else if (nomes.length === 1) {
+    typingIndicator.textContent = `${nomes[0]} está digitando...`;
+  } else {
+    // Junta os nomes com vírgula e o último com "e"
+    const ultimo = nomes.pop();
+    typingIndicator.textContent = `${nomes.join(', ')} e ${ultimo} estão digitando...`;
+    // recoloca o último para manter o objeto íntegro (não necessário, mas seguro)
+    nomes.push(ultimo);
+  }
+}
 
 socket.on("userTyping", (dados) => {
-  typingIndicator.textContent = `${dados.nome} está digitando...`;
+  const nome = dados.nome;
+  // Se já existe um timer para este usuário, limpa para reiniciar
+  if (typingUsers[nome]) {
+    clearTimeout(typingUsers[nome]);
+  }
+  // Cria um novo timeout para remover após 3 segundos sem novo evento
+  typingUsers[nome] = setTimeout(() => {
+    delete typingUsers[nome];
+    atualizarTypingIndicator();
+  }, 3000);
+  atualizarTypingIndicator();
 });
 
-socket.on("userStopTyping", () => {
-  typingIndicator.textContent = ""; // Limpa a mensagem
+socket.on("userStopTyping", (dados) => {
+  const nome = dados.nome;
+  if (typingUsers[nome]) {
+    clearTimeout(typingUsers[nome]);
+    delete typingUsers[nome];
+    atualizarTypingIndicator();
+  }
 });
 
 // render mensagens
@@ -238,7 +294,6 @@ function renderMsg(m) {
   const img = document.createElement("img");
   img.src = m.avatar || "avatars/default.png";
   img.className = "msg-avatar";
-  // Classe removida do JS: img.classList.add("master-avatar"); para tirar o contorno
 
   const box = document.createElement("div");
   box.className = "msg-box";
@@ -286,13 +341,19 @@ btnGlobalMute.addEventListener("click", () => {
 
 btnMute.addEventListener("click", () => {
   const targetUserId = muteTarget.value;
-  if (!targetUserId) return;
+  if (!targetUserId) {
+    mostrarAviso("Selecione um jogador para silenciar.");
+    return;
+  }
   socket.emit("muteUser", { userId: targetUserId, mute: true });
 });
 
 btnUnmute.addEventListener("click", () => {
   const targetUserId = muteTarget.value;
-  if (!targetUserId) return;
+  if (!targetUserId) {
+    mostrarAviso("Selecione um jogador para dessilenciar.");
+    return;
+  }
   socket.emit("muteUser", { userId: targetUserId, mute: false });
 });
 
@@ -300,4 +361,5 @@ btnSetName.addEventListener("click", () => {
   const novo = setNameInput.value.trim();
   if (!novo) return;
   socket.emit("setMyName", novo);
+  setNameInput.value = ""; // limpa o campo após trocar
 });
