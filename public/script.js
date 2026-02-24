@@ -57,6 +57,28 @@ function mostrarAviso(texto) {
   setTimeout(() => aviso.remove(), 3000);
 }
 
+// MELHORIA 2: Feedback de conexão
+socket.on("connect", () => {
+  console.log("Conectado ao servidor");
+  // Não mostramos toast na conexão inicial para não poluir
+});
+
+socket.on("disconnect", () => {
+  mostrarAviso("⚠️ Conexão perdida. Tentando reconectar...");
+});
+
+socket.on("reconnect", () => {
+  mostrarAviso("✅ Reconectado com sucesso!");
+});
+
+socket.on("reconnect_attempt", () => {
+  // Opcional: mostrar tentativa
+});
+
+socket.on("reconnect_error", () => {
+  mostrarAviso("❌ Erro ao reconectar. Verifique sua internet.");
+});
+
 // tentar resume com token salvo
 const savedToken = localStorage.getItem("chatAuth");
 if (savedToken) socket.emit("resume", savedToken);
@@ -78,13 +100,14 @@ if (masterAvatarOptions) {
   }));
 }
 
-// avatar selection (admin panel) - NOVO
+// avatar selection (admin panel)
 if (adminAvatarOptions) {
   adminAvatarOptions.forEach(img => img.addEventListener("click", () => {
     adminAvatarOptions.forEach(i => i.classList.remove("selected"));
     img.classList.add("selected");
     const novoAvatar = img.dataset.avatar;
     socket.emit("setMyAvatar", novoAvatar);
+    mostrarAviso("Avatar alterado!"); // Feedback visual
   }));
 }
 
@@ -148,9 +171,8 @@ socket.on("registerError", (msg) => mostrarAviso(msg));
 // evento kicked (quando um novo mestre se conecta)
 socket.on("kicked", (msg) => {
   mostrarAviso(msg || "Você foi desconectado por outro mestre.");
-  // Opcional: redirecionar para tela de login
   setTimeout(() => {
-    window.location.reload(); // ou voltar para tela de registro
+    window.location.reload();
   }, 2000);
 });
 
@@ -179,7 +201,7 @@ socket.on("mutedWarning", (msg) => mostrarAviso(msg || "Você está silenciado."
 
 socket.on("onlineUsers", (users) => {
   if (muteTarget) {
-    muteTarget.innerHTML = '<option value="">Selecione um jogador</option>'; // opção vazia
+    muteTarget.innerHTML = '<option value="">Selecione um jogador</option>';
     users.forEach(u => {
       if (u.role !== "master") {
         const opt = document.createElement("option");
@@ -219,7 +241,10 @@ function enviarMensagem() {
   socket.emit("mensagem", { texto });
   msgInput.value = "";
   
-  socket.emit("stopTyping"); // Para o aviso de digitando na hora
+  socket.emit("stopTyping");
+  
+  // Reset altura do textarea
+  msgInput.style.height = 'auto';
 }
 
 sendBtn.addEventListener("click", enviarMensagem);
@@ -231,7 +256,14 @@ msgInput.addEventListener("keydown", (e) => {
   }
 });
 
-// ===== Lógica de Digitando Melhorada =====
+// Auto-resize do textarea (melhoria adicional)
+function autoResizeTextarea() {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = (msgInput.scrollHeight) + 'px';
+}
+msgInput.addEventListener('input', autoResizeTextarea);
+
+// ===== Lógica de Digitando Melhorada com animação =====
 let typingTimer;
 msgInput.addEventListener("input", () => {
   socket.emit("typing");
@@ -246,24 +278,23 @@ function atualizarTypingIndicator() {
   const nomes = Object.keys(typingUsers);
   if (nomes.length === 0) {
     typingIndicator.textContent = "";
+    typingIndicator.classList.remove('active');
   } else if (nomes.length === 1) {
-    typingIndicator.textContent = `${nomes[0]} está digitando...`;
+    typingIndicator.textContent = `${nomes[0]} está digitando`;
+    typingIndicator.classList.add('active');
   } else {
-    // Junta os nomes com vírgula e o último com "e"
     const ultimo = nomes.pop();
-    typingIndicator.textContent = `${nomes.join(', ')} e ${ultimo} estão digitando...`;
-    // recoloca o último para manter o objeto íntegro (não necessário, mas seguro)
+    typingIndicator.textContent = `${nomes.join(', ')} e ${ultimo} estão digitando`;
     nomes.push(ultimo);
+    typingIndicator.classList.add('active');
   }
 }
 
 socket.on("userTyping", (dados) => {
   const nome = dados.nome;
-  // Se já existe um timer para este usuário, limpa para reiniciar
   if (typingUsers[nome]) {
     clearTimeout(typingUsers[nome]);
   }
-  // Cria um novo timeout para remover após 3 segundos sem novo evento
   typingUsers[nome] = setTimeout(() => {
     delete typingUsers[nome];
     atualizarTypingIndicator();
@@ -280,7 +311,31 @@ socket.on("userStopTyping", (dados) => {
   }
 });
 
-// render mensagens
+// MELHORIA 8: render mensagens com timestamps relativos
+function formatarData(data) {
+  const dataMsg = new Date(data);
+  const hoje = new Date();
+  const diferencaDias = Math.floor((hoje - dataMsg) / (1000 * 60 * 60 * 24));
+  
+  // Ajustar para considerar apenas datas (ignorar horário)
+  const dataMsgSemHorario = new Date(dataMsg.getFullYear(), dataMsg.getMonth(), dataMsg.getDate());
+  const hojeSemHorario = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const diffDias = Math.floor((hojeSemHorario - dataMsgSemHorario) / (1000 * 60 * 60 * 24));
+  
+  const horario = dataMsg.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  if (diffDias === 0) {
+    return `Hoje às ${horario}`;
+  } else if (diffDias === 1) {
+    return `Ontem às ${horario}`;
+  } else if (diffDias < 7) {
+    const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return `${dias[dataMsg.getDay()]} às ${horario}`;
+  } else {
+    return `${dataMsg.toLocaleDateString()} às ${horario}`;
+  }
+}
+
 function renderMsg(m) {
   const li = document.createElement("li");
   li.dataset.id = m._id;
@@ -308,8 +363,7 @@ function renderMsg(m) {
 
   const hora = document.createElement("div");
   hora.className = "msg-time";
-  const data = new Date(m.data);
-  hora.textContent = data.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  hora.textContent = formatarData(m.data); // MELHORIA 8
 
   box.appendChild(nome);
   box.appendChild(texto);
@@ -361,5 +415,5 @@ btnSetName.addEventListener("click", () => {
   const novo = setNameInput.value.trim();
   if (!novo) return;
   socket.emit("setMyName", novo);
-  setNameInput.value = ""; // limpa o campo após trocar
+  setNameInput.value = "";
 });

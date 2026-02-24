@@ -206,13 +206,31 @@ button:hover { background: var(--brand-hover); }
   word-break: break-word;
 }
 
-/* Indicador de digitação */
+/* MELHORIA 7: Indicador de digitação com animação */
 #typing-msg {
   padding: 0 16px 8px 16px;
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
   min-height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#typing-msg.active::after {
+  content: '';
+  width: 24px;
+  animation: typingAnimation 1.5s infinite;
+  letter-spacing: 2px;
+}
+
+@keyframes typingAnimation {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
 }
 
 /* ===== ÁREA DE INPUT DO CHAT (TEXTAREA) ===== */
@@ -221,7 +239,7 @@ button:hover { background: var(--brand-hover); }
   padding: 16px;
   background: var(--bg-main);
   gap: 8px;
-  align-items: flex-end; /* Para alinhar o botão com a base do textarea */
+  align-items: flex-end;
 }
 
 /* Estilo específico para o textarea */
@@ -235,10 +253,10 @@ button:hover { background: var(--brand-hover); }
   font-family: inherit;
   font-size: 14px;
   line-height: 1.5;
-  resize: none; /* Impede redimensionamento manual, mas permite scroll */
-  overflow-y: auto; /* Scroll vertical quando necessário */
-  min-height: 44px; /* Altura mínima para uma linha */
-  max-height: 120px; /* Altura máxima para 3-4 linhas */
+  resize: none;
+  overflow-y: auto;
+  min-height: 44px;
+  max-height: 120px;
   outline: none;
   transition: 0.2s;
 }
@@ -249,7 +267,7 @@ button:hover { background: var(--brand-hover); }
 
 #chat-input button {
   width: auto;
-  padding: 12px 24px; /* Aumentei o padding para combinar com o textarea */
+  padding: 12px 24px;
   border-radius: var(--radius-md);
   background: var(--brand-primary);
   color: white;
@@ -257,7 +275,7 @@ button:hover { background: var(--brand-hover); }
   border: none;
   cursor: pointer;
   transition: 0.2s;
-  align-self: flex-end; /* Alinha com a base */
+  align-self: flex-end;
 }
 
 #chat-input button:hover {
@@ -458,7 +476,7 @@ html { font-size: 16px; }
     padding: var(--mobile-btn-pad);
     font-size: 16px;
     border-radius: 10px;
-    flex: 1; /* Botão ocupa espaço proporcional em telas muito pequenas */
+    flex: 1;
   }
   button { font-size: 16px; padding: 12px; }
   #admin-panel { padding: 12px; max-height: 260px; }
