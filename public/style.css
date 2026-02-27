@@ -697,6 +697,48 @@ button:hover { background: var(--brand-hover); }
     -webkit-user-select: none;
     user-select: none;
   }
+
+  #chat-input {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 60px !important;
+    position: relative;
+    z-index: 20;
+    background: var(--bg-main) !important;
+    border-top: 1px solid var(--bg-element);
+    pointer-events: auto !important;
+  }
+  
+  #chat-input textarea,
+  #chat-input button {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  
+  /* Garantir que o container não esconda o input */
+  #chat-container {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+  
+  #chat {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Quando o painel do mestre estiver aberto, garantir que o input fique visível */
+  #admin-panel:not([style*="display: none"]) + #chat-container #chat-input,
+  body:has(#admin-panel[style*="display: block"]) #chat-input,
+  body:has(#admin-panel:not([style*="display: none"])) #chat-input {
+    position: relative !important;
+    z-index: 30 !important;
+    background: var(--bg-main) !important;
+  }
 }
 
 /* Ajustes para telas entre 601px e 960px (já cobertas pela media 960, mas podemos refinar) */

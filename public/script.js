@@ -187,10 +187,23 @@ socket.on("registered", (dados) => {
   myName = dados.nome;
   myRole = dados.role || "player";
   myUserId = dados._id || null;
+  
   if (screenRegister) screenRegister.style.display = "none";
-  if (screenChat) screenChat.style.display = "";
+  if (screenChat) {
+    screenChat.style.display = "";
+    // Forçar ajuste mobile após mostrar o chat
+    setTimeout(() => {
+      ajustarLayoutMobile();
+      // Focar no input automaticamente (opcional)
+      if (window.innerWidth <= 600 && msgInput) {
+        msgInput.focus();
+      }
+    }, 200);
+  }
+  
   if (myRole === "master") adminPanel.style.display = "";
   else adminPanel.style.display = "none";
+  
   if (historicoPendente) {
     renderizarHistorico();
   }
@@ -502,7 +515,71 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// ===== CORREÇÃO PARA MOBILE =====
+function ajustarLayoutMobile() {
+  const isMobile = window.innerWidth <= 600;
+  const chatInput = document.getElementById('chat-input');
+  const adminPanel = document.getElementById('admin-panel');
+  const screenChat = document.getElementById('screen-chat');
+  
+  if (!chatInput || !screenChat) return;
+  
+  if (isMobile) {
+    // Garantir que o input está visível
+    chatInput.style.display = 'flex';
+    chatInput.style.visibility = 'visible';
+    chatInput.style.opacity = '1';
+    chatInput.style.height = 'auto';
+    chatInput.style.minHeight = '60px';
+    
+    // Ajustar altura do container do chat para não sobrepor
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer) {
+      chatContainer.style.flex = '1';
+      chatContainer.style.minHeight = '0';
+    }
+    
+    // Se o painel do mestre estiver aberto, não deixar esconder o input
+    if (adminPanel && adminPanel.style.display !== 'none') {
+      // Garantir que o chat input fique acima do painel
+      chatInput.style.position = 'relative';
+      chatInput.style.zIndex = '10';
+      chatInput.style.backgroundColor = 'var(--bg-main)';
+    }
+  }
+}
 
+// Forçar ajuste sempre que a tela mudar de tamanho
+window.addEventListener('resize', ajustarLayoutMobile);
+
+// Forçar ajuste quando o chat for exibido
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+      if (screenChat.style.display !== 'none') {
+        setTimeout(ajustarLayoutMobile, 100); // Pequeno delay para garantir
+      }
+    }
+  });
+});
+
+if (screenChat) {
+  observer.observe(screenChat, { attributes: true });
+}
+
+// Ajustar também quando o painel do mestre for aberto/fechado
+if (adminPanel) {
+  const adminObserver = new MutationObserver(() => {
+    if (window.innerWidth <= 600) {
+      ajustarLayoutMobile();
+    }
+  });
+  adminObserver.observe(adminPanel, { attributes: true, attributeFilter: ['style', 'class'] });
+}
+
+// Ajuste inicial quando a página carregar
+document.addEventListener('DOMContentLoaded', ajustarLayoutMobile);
+setTimeout(ajustarLayoutMobile, 500); // Fallback
 
 
 
