@@ -44,6 +44,14 @@ let historicoPendente = null;
 // ===== Cache  =====
 const mensagensCache = new Map(); // id -> dados da mensagem
 
+// ===== Menu de contexto =====
+const contextMenu = document.getElementById('context-menu');
+const contextReply = document.getElementById('context-reply');
+const contextDelete = document.getElementById('context-delete');
+let currentMessageId = null;
+let currentMessageAuthorId = null;
+let longPressTimer = null;
+
 const typingIndicator = document.createElement("div");
 typingIndicator.id = "typing-msg";
 document.getElementById("chat-container").insertBefore(typingIndicator, msgInput.parentElement);
@@ -237,13 +245,13 @@ socket.on("mensagem", (m) => {
 
 // apagado / limpo
 socket.on("messageDeleted", (id) => {
-  mensagensCache.delete(id); // <-- ADICIONE ESTA LINHA
+  mensagensCache.delete(id);
   const li = document.querySelector(`li[data-id="${id}"]`);
   if (li) li.remove();
 });
 socket.on("cleared", () => { 
   chatList.innerHTML = "";
-  mensagensCache.clear(); // <-- ADICIONE ESTA LINHA
+  mensagensCache.clear();
 });
 
 socket.on("serverState", (st) => {
@@ -384,13 +392,95 @@ socket.on("userStopTyping", (dados) => {
   }
 });
 
-// MELHORIA 8: render mensagens com timestamps relativos
+// ===== Funções do menu de contexto =====
+function showContextMenu(e, msgId, authorId) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  currentMessageId = msgId;
+  currentMessageAuthorId = authorId;
+
+  // Posicionar o menu
+  let posX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+  let posY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+  // Limites da tela
+  const menuWidth = contextMenu.offsetWidth || 150;
+  const menuHeight = contextMenu.offsetHeight || 100;
+  const maxX = window.innerWidth - menuWidth;
+  const maxY = window.innerHeight - menuHeight;
+
+  if (posX > maxX) posX = maxX;
+  if (posY > maxY) posY = maxY;
+
+  contextMenu.style.top = posY + 'px';
+  contextMenu.style.left = posX + 'px';
+  contextMenu.style.display = 'block';
+
+  // Mostrar/esconder "Apagar" conforme permissão
+  const canDelete = (myRole === 'master' || (myUserId && myUserId.toString() === authorId?.toString()));
+  contextDelete.style.display = canDelete ? 'block' : 'none';
+}
+
+function addContextMenuToMessage(li, msgId, authorId) {
+  // Botão direito do mouse
+  li.addEventListener('contextmenu', (e) => {
+    showContextMenu(e, msgId, authorId);
+  });
+
+  // Toque longo para mobile
+  li.addEventListener('touchstart', (e) => {
+    longPressTimer = setTimeout(() => {
+      showContextMenu(e, msgId, authorId);
+    }, 500);
+  });
+
+  li.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
+  });
+
+  li.addEventListener('touchmove', () => {
+    clearTimeout(longPressTimer);
+  });
+}
+
+// Fechar menu ao clicar fora
+document.addEventListener('click', (e) => {
+  if (!contextMenu.contains(e.target)) {
+    contextMenu.style.display = 'none';
+  }
+});
+
+document.addEventListener('scroll', () => {
+  contextMenu.style.display = 'none';
+}, true);
+
+// Ações do menu
+contextReply.addEventListener('click', () => {
+  if (currentMessageId) {
+    const msg = mensagensCache.get(currentMessageId);
+    if (msg) {
+      msgInput.value = `@${msg.nome} ` + msgInput.value;
+      msgInput.focus();
+      // Mover cursor para o final
+      msgInput.selectionStart = msgInput.selectionEnd = msgInput.value.length;
+    }
+  }
+  contextMenu.style.display = 'none';
+});
+
+contextDelete.addEventListener('click', () => {
+  if (currentMessageId) {
+    socket.emit('deleteMessage', currentMessageId);
+  }
+  contextMenu.style.display = 'none';
+});
+
+// ===== Renderização de mensagens =====
 function formatarData(data) {
   const dataMsg = new Date(data);
   const hoje = new Date();
-  const diferencaDias = Math.floor((hoje - dataMsg) / (1000 * 60 * 60 * 24));
   
-  // Ajustar para considerar apenas datas (ignorar horário)
   const dataMsgSemHorario = new Date(dataMsg.getFullYear(), dataMsg.getMonth(), dataMsg.getDate());
   const hojeSemHorario = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
   const diffDias = Math.floor((hojeSemHorario - dataMsgSemHorario) / (1000 * 60 * 60 * 24));
@@ -436,7 +526,7 @@ function renderMsg(m) {
 
   const hora = document.createElement("div");
   hora.className = "msg-time";
-  hora.textContent = formatarData(m.data); // MELHORIA 8
+  hora.textContent = formatarData(m.data);
 
   box.appendChild(nome);
   box.appendChild(texto);
@@ -445,12 +535,8 @@ function renderMsg(m) {
   li.appendChild(img);
   li.appendChild(box);
 
-  if (myRole === "master") {
-    const btnDel = document.createElement("button");
-    btnDel.textContent = "Apagar";
-    btnDel.addEventListener("click", () => socket.emit("deleteMessage", m._id));
-    li.appendChild(btnDel);
-  }
+  // Adiciona menu de contexto à mensagem
+  addContextMenuToMessage(li, m._id, m.autorId);
 
   chatList.appendChild(li);
   chatList.scrollTop = chatList.scrollHeight;
@@ -580,7 +666,6 @@ if (adminPanel) {
 // Ajuste inicial quando a página carregar
 document.addEventListener('DOMContentLoaded', ajustarLayoutMobile);
 setTimeout(ajustarLayoutMobile, 500); // Fallback
-
 
 
 
