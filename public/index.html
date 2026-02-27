@@ -77,6 +77,8 @@
       <ul id="users-list"></ul>
     </div>
 
+    <div id="global-mute-warning" style="display:none;"> O chat está silenciado pelo mestre</div>
+
     <!-- CHAT -->
     <div id="chat-container">
       <ul id="chat"></ul>
@@ -89,7 +91,10 @@
 
     <!-- PAINEL DO MESTRE -->
     <div id="admin-panel" style="display:none">
-      <h3>Painel do Mestre</h3>
+      <div class="admin-header">
+        <h3>Painel do Mestre</h3>
+        <button id="toggle-admin-panel" aria-label="Abrir/fechar painel">▼</button>
+      </div>
 
       <div class="admin-section">
         <button id="btn-clear">Limpar Chat</button>
@@ -124,6 +129,13 @@
       </div>
     </div>
 
+  </div>
+
+  <div id="context-menu" class="context-menu" style="display:none;">
+    <ul>
+      <li id="context-reply">Responder</li>
+      <li id="context-delete">Apagar</li>
+    </ul>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

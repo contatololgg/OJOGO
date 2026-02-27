@@ -30,7 +30,7 @@ const setNameInput = document.getElementById("set-name-input");
 const btnSetName = document.getElementById("btn-set-name");
 const usersList = document.getElementById("users-list");
 
-// Avatares do admin (para trocar)
+// Avatares do admin
 const adminAvatarOptions = document.querySelectorAll("#admin-avatar-options .avatar-option");
 
 let selectedAvatar = null;
@@ -39,11 +39,11 @@ let myName = null;
 let myRole = null;
 let myUserId = null; 
 let serverState = { globalMuted: false };
+let historicoPendente = null;
 
-// ===== NOVO: Cache para timestamps =====
+// ===== Cache  =====
 const mensagensCache = new Map(); // id -> dados da mensagem
 
-// Criação do elemento de "Digitando..." na tela
 const typingIndicator = document.createElement("div");
 typingIndicator.id = "typing-msg";
 document.getElementById("chat-container").insertBefore(typingIndicator, msgInput.parentElement);
@@ -82,11 +82,11 @@ socket.on("resumeFailed", () => {
 });
 
 socket.on("disconnect", () => {
-  mostrarAviso("⚠️ Conexão perdida. Tentando reconectar...");
+  mostrarAviso("Conexão perdida. Tentando reconectar...");
 });
 
 socket.on("reconnect", () => {
-  mostrarAviso("✅ Reconectado com sucesso!");
+  mostrarAviso("Reconectado com sucesso!");
 });
 
 socket.on("reconnect_attempt", () => {
@@ -94,7 +94,7 @@ socket.on("reconnect_attempt", () => {
 });
 
 socket.on("reconnect_error", () => {
-  mostrarAviso("❌ Erro ao reconectar. Verifique sua internet.");
+  mostrarAviso("Erro ao reconectar. Verifique sua internet.");
 });
 
 // avatar selection (player)
@@ -168,6 +168,20 @@ socket.on("authToken", (token) => {
   localStorage.setItem("chatAuth", token);
 });
 
+socket.on("historico", (msgs) => {
+  historicoPendente = msgs;
+  mensagensCache.clear(); // opcional
+  msgs.forEach(m => mensagensCache.set(m._id, m));
+  if (myUserId) {
+    renderizarHistorico();
+  }
+});
+
+function renderizarHistorico() {
+  chatList.innerHTML = "";
+  historicoPendente.forEach(m => renderMsg(m));
+}
+
 // confirmação de registro
 socket.on("registered", (dados) => {
   myName = dados.nome;
@@ -177,6 +191,9 @@ socket.on("registered", (dados) => {
   if (screenChat) screenChat.style.display = "";
   if (myRole === "master") adminPanel.style.display = "";
   else adminPanel.style.display = "none";
+  if (historicoPendente) {
+    renderizarHistorico();
+  }
 });
 
 // erros de registro
@@ -240,14 +257,33 @@ socket.on("onlineUsers", (users) => {
     usersList.innerHTML = "";
     users.forEach(u => {
       const li = document.createElement("li");
-      li.textContent = u.nome;
+      
+      // Criar elemento de imagem para o avatar
+      const img = document.createElement("img");
+      img.src = u.avatar || "avatars/default.png";
+      img.className = "user-avatar";
+      img.alt = u.nome;
+      img.onerror = () => { img.src = "avatars/default.png"; }; // Fallback
+      
+      // Criar span com o nome
+      const span = document.createElement("span");
+      span.textContent = u.nome;
+      
+      // Adicionar elementos ao li
+      li.appendChild(img);
+      li.appendChild(span);
+      
+      // Se for mestre, adicionar classe especial
       if (u.role === "master") li.classList.add("user-master");
+      
+      // Se estiver silenciado, adicionar badge
       if (u.muted) {
         const badge = document.createElement("span");
         badge.className = "badge-muted";
-        badge.textContent = " Silenciado";
+        badge.textContent = "🔇";
         li.appendChild(badge);
       }
+      
       usersList.appendChild(li);
     });
   }
@@ -465,3 +501,10 @@ document.addEventListener('visibilitychange', () => {
     atualizarTimestamps();
   }
 });
+
+
+
+
+
+
+  
