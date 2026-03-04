@@ -4,17 +4,14 @@
   --bg-panel: #2b2d31;
   --bg-element: #383a40;
   --bg-input: #1a1a1a;
-  
   --text-main: #e4e6eb;
   --text-muted: #aaa;
-  
   --brand-primary: #5865f2;
   --brand-hover: #4752c4;
   --brand-danger: #ed4245;
   --brand-danger-hover: #c03537;
   --brand-master: #4a3f8c;
   --brand-warning: #ffcc00;
-
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -39,14 +36,12 @@ body {
   overflow: hidden;
 }
 
-/* ===== Scrollbar Global ===== */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--brand-primary); border-radius: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
-/* =========================================
-   TELA DE REGISTRO
-========================================= */
+/* ===== TELA DE REGISTRO ===== */
 #screen-register {
   width: 100%;
   max-width: 420px;
@@ -62,7 +57,6 @@ body {
 #screen-register h3 { margin-bottom: 12px; font-size: 16px; color: var(--text-muted); text-align: center; }
 #screen-register h4 { margin-bottom: 8px; font-size: 14px; color: var(--text-muted); }
 
-/* Inputs e Botões base */
 input, select {
   width: 100%;
   padding: 10px;
@@ -88,8 +82,8 @@ button {
   transition: 0.2s;
 }
 button:hover { background: var(--brand-hover); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Seletor Jogador/Mestre */
 .role-selector {
   display: flex;
   background: var(--bg-input);
@@ -116,7 +110,6 @@ button:hover { background: var(--brand-hover); }
   color: #fff;
 }
 
-/* Grids de Avatar */
 .avatar-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -132,7 +125,6 @@ button:hover { background: var(--brand-hover); }
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
   max-height: 120px;
 }
-
 .avatar-option {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -146,9 +138,7 @@ button:hover { background: var(--brand-hover); }
 .avatar-option:hover { transform: scale(1.05); opacity: 1; }
 .avatar-option.selected { border-color: var(--brand-primary); opacity: 1; }
 
-/* =========================================
-   TELA DO CHAT
-========================================= */
+/* ===== TELA DO CHAT ===== */
 #screen-chat {
   width: 100%;
   max-width: 1300px;
@@ -187,6 +177,24 @@ button:hover { background: var(--brand-hover); }
   border-radius: 50%;
   margin-right: 8px;
   object-fit: cover;
+}
+.user-master { color: var(--brand-warning); font-weight: bold; }
+.badge-muted {
+  margin-left: auto;
+  font-size: 11px;
+  background: var(--brand-danger);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+#global-mute-warning {
+  background: var(--brand-danger);
+  color: white;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  display: none;
 }
 
 #chat-container {
@@ -256,7 +264,29 @@ button:hover { background: var(--brand-hover); }
   opacity: 0.7;
 }
 
-/* Indicador de digitação */
+.reply-preview {
+  background: rgba(255,255,255,0.1);
+  border-left: 3px solid var(--brand-primary);
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.reply-preview:hover {
+  background: rgba(255,255,255,0.2);
+}
+.reply-author {
+  font-weight: bold;
+  color: var(--brand-primary);
+  margin-right: 6px;
+}
+.reply-text {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 #typing-msg {
   display: flex;
   align-items: center;
@@ -267,7 +297,6 @@ button:hover { background: var(--brand-hover); }
   min-height: 24px;
 }
 
-/* ===== ÁREA DE INPUT DO CHAT ===== */
 #chat-input {
   display: flex;
   padding: 16px;
@@ -307,80 +336,6 @@ button:hover { background: var(--brand-hover); }
 }
 #chat-input button:hover { background: var(--brand-hover); }
 
-/* ===== PAINEL DO MESTRE ===== */
-#admin-panel {
-  width: 280px;
-  flex-shrink: 0;
-  background: #151515;
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
-}
-#admin-panel h3 { color: var(--brand-warning); font-size: 16px; margin-bottom: 4px; }
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-#toggle-admin-panel {
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  background: transparent;
-  color: var(--text-muted);
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-#toggle-admin-panel:hover { background: var(--bg-element); }
-.admin-section {
-  background: var(--bg-panel);
-  padding: 12px;
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.admin-section h4 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
-.admin-section select, .admin-section input { margin-bottom: 0; padding: 8px; }
-.admin-section button { padding: 8px; font-size: 13px; }
-#btn-clear { background: var(--brand-danger); }
-#btn-clear:hover { background: var(--brand-danger-hover); }
-#btn-global-mute { background: var(--brand-primary); }
-
-/* ===== USUÁRIOS ONLINE ===== */
-.user-master { color: var(--brand-warning); font-weight: bold; }
-.badge-muted {
-  margin-left: auto;
-  font-size: 11px;
-  background: var(--brand-danger);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-/* ===== AVISO DE MUTE GLOBAL ===== */
-#global-mute-warning {
-  background: var(--brand-danger);
-  color: white;
-  padding: 8px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: bold;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-/* ===== BARRA DE REPLY ===== */
 #reply-bar {
   display: flex;
   align-items: center;
@@ -412,32 +367,228 @@ button:hover { background: var(--brand-hover); }
   cursor: pointer;
   padding: 0 8px;
 }
-#cancel-reply:hover {
-  color: var(--text-main);
-}
+#cancel-reply:hover { color: var(--text-main); }
 
-/* ===== PREVIEW DE REPLY NAS MENSAGENS ===== */
-.reply-preview {
-  background: rgba(255,255,255,0.1);
-  border-left: 3px solid var(--brand-primary);
-  padding: 4px 8px;
-  margin-bottom: 6px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  cursor: pointer;
-  transition: 0.2s;
+/* ===== PAINEL DO MESTRE (DESKTOP) ===== */
+#admin-panel {
+  width: 280px;
+  flex-shrink: 0;
+  background: #151515;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
 }
-.reply-preview:hover {
-  background: rgba(255,255,255,0.2);
+#admin-panel h3 { color: var(--brand-warning); font-size: 16px; margin-bottom: 4px; }
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
-.reply-author {
-  font-weight: bold;
-  color: var(--brand-primary);
-  margin-right: 6px;
-}
-.reply-text {
+.toggle-admin-panel {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
   color: var(--text-muted);
-  font-style: italic;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.toggle-admin-panel:hover { background: var(--bg-element); }
+.admin-section {
+  background: var(--bg-panel);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.admin-section h4 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+.admin-section select, .admin-section input { margin-bottom: 0; padding: 8px; }
+.admin-section button { padding: 8px; font-size: 13px; }
+.master-action[data-action="clear"] { background: var(--brand-danger); }
+.master-action[data-action="clear"]:hover { background: var(--brand-danger-hover); }
+
+/* ===== MOBILE: FAB E DRAWER ===== */
+@media (max-width: 600px) {
+  body { padding: 0; overflow: hidden; }
+
+  #screen-register {
+    border-radius: 0;
+    height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  #screen-chat {
+    flex-direction: column;
+    height: 100vh;
+    gap: 0;
+  }
+
+  #users-panel {
+    width: 100%;
+    height: auto;
+    max-height: 80px;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 12px;
+    border-radius: 0;
+    border-bottom: 1px solid var(--bg-element);
+    gap: 12px;
+  }
+  #users-panel h3 { display: none; }
+  #users-list {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    padding: 0;
+    margin: 0;
+    white-space: nowrap;
+  }
+  #users-list li {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--bg-element);
+    border-radius: 30px;
+    font-size: 14px;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .user-avatar {
+    width: 28px;
+    height: 28px;
+    margin-right: 6px;
+  }
+
+  #chat-container {
+    flex: 1;
+    width: 100%;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #chat {
+    flex: 1;
+    padding: 12px;
+    gap: 10px;
+  }
+  .msg-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  .msg-box {
+    max-width: 85%;
+    padding: 8px 12px;
+  }
+  .msg-name { font-size: 13px; }
+  .msg-text { font-size: 15px; }
+
+  #typing-msg {
+    padding: 4px 12px 8px;
+    font-size: 13px;
+    min-height: 28px;
+  }
+
+  #chat-input {
+    padding: 12px;
+    background: var(--bg-main);
+    border-top: 1px solid var(--bg-element);
+    gap: 8px;
+  }
+  #chat-input textarea {
+    font-size: 15px;
+    padding: 10px 12px;
+    min-height: 48px;
+    border-radius: 24px;
+  }
+  #chat-input button {
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 24px;
+    white-space: nowrap;
+  }
+
+  /* Esconde o painel lateral do mestre */
+  #admin-panel {
+    display: none !important;
+  }
+
+  /* FAB */
+  .fab-master {
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--brand-master);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .fab-master:hover {
+    background: var(--brand-primary);
+    transform: scale(1.05);
+  }
+
+  /* Drawer */
+  .master-drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-panel);
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 1001;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+  }
+  .master-drawer.open {
+    transform: translateY(0);
+  }
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .drawer-header h3 {
+    color: var(--brand-warning);
+    margin: 0;
+  }
+  #close-drawer {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+  }
 }
 
 /* ===== MENU DE CONTEXTO ===== */
@@ -484,258 +635,4 @@ button:hover { background: var(--brand-hover); }
   10% { opacity: 1; transform: translate(-50%, 0); }
   90% { opacity: 1; }
   100% { opacity: 0; }
-}
-
-/* =========================================
-   RESPONSIVIDADE
-========================================= */
-
-/* Tablets e telas médias */
-@media (max-width: 960px) {
-  body { padding: 0; }
-  #screen-register {
-    border-radius: 0;
-    height: 100vh;
-    max-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  #screen-chat {
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    gap: 0;
-  }
-  #users-panel {
-    width: 100%;
-    height: 70px;
-    flex-direction: row;
-    align-items: center;
-    padding: 10px;
-    border-radius: 0;
-    gap: 12px;
-  }
-  #users-panel h3 { display: none; }
-  #users-list {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    overflow-y: hidden;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-  #users-list li {
-    margin: 0;
-    white-space: nowrap;
-    padding: 6px 12px;
-  }
-  #chat-container { border-radius: 0; flex: 1; }
-  #admin-panel {
-    width: 100%;
-    max-height: 250px;
-    border-radius: 0;
-    padding: 12px;
-  }
-  #chat-input { padding: 10px; }
-  #chat-input textarea, #chat-input button { padding: 12px; }
-}
-
-/* Celulares */
-@media (max-width: 600px) {
-  :root {
-    --mobile-avatar-size: 48px;
-    --mobile-font-size: 16px;
-    --mobile-small-font: 14px;
-    --mobile-spacing: 10px;
-  }
-
-  body { padding: 0; overflow: hidden; }
-
-  #screen-register {
-    padding: 20px;
-    max-width: 100%;
-    height: 100vh;
-    overflow-y: auto;
-  }
-  .avatar-grid {
-    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
-    gap: 10px;
-    padding: 10px;
-  }
-  .avatar-grid.small {
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  }
-
-  #screen-chat {
-    flex-direction: column;
-    height: 100vh;
-    gap: 0;
-  }
-
-  #users-panel {
-    width: 100%;
-    height: auto;
-    max-height: 80px;
-    flex-direction: row;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 8px var(--mobile-spacing);
-    border-radius: 0;
-    border-bottom: 1px solid var(--bg-element);
-    gap: 12px;
-  }
-  #users-panel h3 { display: none; }
-  #users-list {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
-    padding: 0;
-    margin: 0;
-    white-space: nowrap;
-  }
-  #users-list li {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 12px;
-    background: var(--bg-element);
-    border-radius: 30px;
-    font-size: var(--mobile-small-font);
-    margin: 0;
-    white-space: nowrap;
-  }
-  .user-avatar {
-    width: 28px;
-    height: 28px;
-    margin-right: 6px;
-  }
-
-  #chat-container {
-    flex: 1;
-    width: 100%;
-    border-radius: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  #chat {
-    flex: 1;
-    padding: var(--mobile-spacing);
-    gap: var(--mobile-spacing);
-    overflow-y: auto;
-  }
-  #chat li {
-    padding: 8px 10px;
-    gap: 8px;
-  }
-  .msg-avatar {
-    width: var(--mobile-avatar-size);
-    height: var(--mobile-avatar-size);
-  }
-  .msg-box {
-    max-width: 85%;
-    padding: 8px 12px;
-  }
-  .msg-name { font-size: var(--mobile-small-font); }
-  .msg-text { font-size: var(--mobile-font-size); line-height: 1.4; }
-  .msg-time { font-size: 11px; }
-
-  #typing-msg {
-    padding: 4px var(--mobile-spacing) 8px;
-    font-size: var(--mobile-small-font);
-    min-height: 28px;
-  }
-
-  #chat-input {
-    padding: var(--mobile-spacing);
-    background: var(--bg-main);
-    border-top: 1px solid var(--bg-element);
-    gap: 8px;
-  }
-  #chat-input textarea {
-    font-size: var(--mobile-font-size);
-    padding: 10px 12px;
-    min-height: 48px;
-    max-height: 120px;
-    border-radius: 24px;
-  }
-  #chat-input button {
-    padding: 10px 20px;
-    font-size: var(--mobile-font-size);
-    border-radius: 24px;
-    white-space: nowrap;
-  }
-
-  /* Painel do mestre desktop escondido no mobile */
-  #admin-panel {
-    display: none !important;
-  }
-
-  /* Botão FAB */
-  #fab-master {
-    position: fixed;
-    bottom: 80px;
-    right: 16px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--brand-master);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  #fab-master:hover {
-    background: var(--brand-primary);
-    transform: scale(1.05);
-  }
-
-  /* Drawer do mestre */
-  #master-drawer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-panel);
-    border-radius: 20px 20px 0 0;
-    padding: 20px;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    z-index: 1001;
-    max-height: 70vh;
-    overflow-y: auto;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
-  }
-  #master-drawer.open {
-    transform: translateY(0);
-  }
-
-  #close-drawer {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 24px;
-    cursor: pointer;
-  }
-
-  /* Ajustes para o conteúdo do drawer */
-  #master-drawer h3 {
-    color: var(--brand-warning);
-    margin-bottom: 16px;
-    text-align: center;
-  }
-  #master-drawer .admin-section {
-    background: var(--bg-element);
-    margin-bottom: 12px;
-  }
 }

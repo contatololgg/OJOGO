@@ -15,15 +15,13 @@
     <div class="role-selector">
       <input type="radio" id="role-player" name="role" value="player" checked>
       <label for="role-player">Jogador</label>
-
       <input type="radio" id="role-master" name="role" value="master">
       <label for="role-master">Mestre</label>
     </div>
 
-    <!-- PLAYER -->
+    <!-- PLAYER FORM -->
     <div id="player-form">
       <h3>Escolha avatar e nome</h3>
-
       <div id="avatar-options" class="avatar-grid">
         <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
         <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
@@ -36,16 +34,14 @@
         <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
         <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
       </div>
-
-      <input id="player-name" placeholder="Seu nome">
-      <input id="player-password" type="password" placeholder="Senha">
-      <button id="enter-player">Entrar como Jogador</button>
+      <input id="player-name" placeholder="Seu nome" maxlength="20">
+      <input id="player-password" type="password" placeholder="Senha (mín 4 caracteres)">
+      <button id="enter-player" disabled>Entrar como Jogador</button>
     </div>
 
-    <!-- MASTER -->
+    <!-- MASTER FORM -->
     <div id="master-form" style="display:none">
       <h3>Mestre</h3>
-
       <h4>Escolher avatar</h4>
       <div id="master-avatar-options" class="avatar-grid">
         <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
@@ -59,7 +55,6 @@
         <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
         <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
       </div>
-
       <input id="master-pass" type="password" placeholder="Senha do mestre">
       <button id="enter-master">Entrar como Mestre</button>
     </div>
@@ -68,17 +63,18 @@
   <!-- TELA DO CHAT -->
   <div id="screen-chat" style="display:none">
 
-    <!-- USUÁRIOS ONLINE -->
+    <!-- PAINEL DE USUÁRIOS ONLINE -->
     <div id="users-panel">
       <h3>Online</h3>
       <ul id="users-list"></ul>
     </div>
 
-    <div id="global-mute-warning" style="display:none;">🔇 O chat está silenciado pelo mestre</div>
+    <!-- AVISO DE MUTE GLOBAL -->
+    <div id="global-mute-warning" style="display:none;">🔇 Chat silenciado pelo mestre</div>
 
-    <!-- CHAT -->
+    <!-- CONTAINER PRINCIPAL DO CHAT -->
     <div id="chat-container">
-      <!-- Barra de reply -->
+      <!-- BARRA DE RESPOSTA (REPLY) -->
       <div id="reply-bar" style="display: none;">
         <div id="reply-content">
           <span id="reply-author"></span>
@@ -87,38 +83,36 @@
         <button id="cancel-reply">✕</button>
       </div>
 
+      <!-- LISTA DE MENSAGENS -->
       <ul id="chat"></ul>
 
-      <!-- Indicador de digitação -->
-      <div id="typing-msg"></div>
-
+      <!-- INPUT DE MENSAGEM -->
       <div id="chat-input">
         <textarea id="msg" placeholder="Mensagem..." rows="1"></textarea>
         <button id="send">Enviar</button>
       </div>
     </div>
 
-    <!-- PAINEL DO MESTRE (versão desktop) -->
-    <div id="admin-panel" style="display:none">
+    <!-- PAINEL DO MESTRE (DESKTOP) -->
+    <div id="admin-panel" class="master-panel">
       <div class="admin-header">
         <h3>Painel do Mestre</h3>
-        <button id="toggle-admin-panel" aria-label="Abrir/fechar painel">▼</button>
+        <button class="toggle-admin-panel">▼</button>
       </div>
-
       <div class="admin-section">
-        <button id="btn-clear">Limpar Chat</button>
-        <button id="btn-global-mute">Silenciar Todos</button>
+        <button class="master-action" data-action="clear">Limpar Chat</button>
+        <button class="master-action" data-action="globalMute">Silenciar Todos</button>
       </div>
-
       <div class="admin-section">
-        <select id="mute-target"></select>
-        <button id="btn-mute">Silenciar</button>
-        <button id="btn-unmute">Dessilenciar</button>
+        <select class="master-select" data-target="mute">
+          <option value="">Selecione um jogador</option>
+        </select>
+        <button class="master-action" data-action="mute">Silenciar</button>
+        <button class="master-action" data-action="unmute">Dessilenciar</button>
       </div>
-
       <div class="admin-section">
         <h4>Trocar Avatar</h4>
-        <div id="admin-avatar-options" class="avatar-grid small">
+        <div class="avatar-grid small" id="admin-avatar-grid">
           <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
           <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
           <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
@@ -131,32 +125,35 @@
           <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
         </div>
       </div>
-
       <div class="admin-section">
-        <input id="set-name-input" placeholder="Novo nome">
-        <button id="btn-set-name">Trocar nome</button>
+        <input type="text" class="master-input" data-input="name" placeholder="Novo nome" maxlength="20">
+        <button class="master-action" data-action="setName">Trocar nome</button>
       </div>
     </div>
 
-    <!-- Botão FAB para mestre (mobile) -->
-    <button id="fab-master" style="display:none;">⚙️</button>
+    <!-- BOTÃO FAB (MOBILE) - aparece apenas para mestre em mobile -->
+    <button id="fab-master" class="fab-master" style="display:none;">⚙️</button>
 
-    <!-- Drawer do mestre (mobile) -->
-    <div id="master-drawer">
-      <button id="close-drawer">✕</button>
-      <h3>Painel do Mestre</h3>
-      <div class="admin-section">
-        <button id="btn-clear">Limpar Chat</button>
-        <button id="btn-global-mute">Silenciar Todos</button>
+    <!-- DRAWER DO MESTRE (MOBILE) -->
+    <div id="master-drawer" class="master-drawer">
+      <div class="drawer-header">
+        <h3>Painel do Mestre</h3>
+        <button id="close-drawer">✕</button>
       </div>
       <div class="admin-section">
-        <select id="mute-target"></select>
-        <button id="btn-mute">Silenciar</button>
-        <button id="btn-unmute">Dessilenciar</button>
+        <button class="master-action" data-action="clear">Limpar Chat</button>
+        <button class="master-action" data-action="globalMute">Silenciar Todos</button>
+      </div>
+      <div class="admin-section">
+        <select class="master-select" data-target="mute">
+          <option value="">Selecione um jogador</option>
+        </select>
+        <button class="master-action" data-action="mute">Silenciar</button>
+        <button class="master-action" data-action="unmute">Dessilenciar</button>
       </div>
       <div class="admin-section">
         <h4>Trocar Avatar</h4>
-        <div id="admin-avatar-options-mobile" class="avatar-grid small">
+        <div class="avatar-grid small" id="drawer-avatar-grid">
           <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
           <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
           <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
@@ -170,19 +167,22 @@
         </div>
       </div>
       <div class="admin-section">
-        <input id="set-name-input-mobile" placeholder="Novo nome">
-        <button id="btn-set-name-mobile">Trocar nome</button>
+        <input type="text" class="master-input" data-input="name" placeholder="Novo nome" maxlength="20">
+        <button class="master-action" data-action="setName">Trocar nome</button>
       </div>
     </div>
   </div>
 
   <!-- MENU DE CONTEXTO -->
-  <div id="context-menu" class="context-menu" style="display:none;">
+  <div id="context-menu" class="context-menu">
     <ul>
       <li id="context-reply">Responder</li>
       <li id="context-delete">Apagar</li>
     </ul>
   </div>
+
+  <!-- INDICADOR DE DIGITAÇÃO (será posicionado via JS) -->
+  <div id="typing-msg" class="typing-indicator"></div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>

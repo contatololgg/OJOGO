@@ -1,7 +1,7 @@
 // script.js
 const socket = io();
 
-// Elementos da UI
+// UI elements
 const screenRegister = document.getElementById("screen-register");
 const playerForm = document.getElementById("player-form");
 const masterForm = document.getElementById("master-form");
@@ -20,13 +20,20 @@ const chatList = document.getElementById("chat");
 const msgInput = document.getElementById("msg");
 const sendBtn = document.getElementById("send");
 
+// Reply
 const replyBar = document.getElementById('reply-bar');
 const replyAuthor = document.getElementById('reply-author');
 const replyText = document.getElementById('reply-text');
 const cancelReply = document.getElementById('cancel-reply');
-let replyingTo = null; // { id, nome, texto }
+let replyingTo = null;
 
+// Painéis de mestre (ambos)
 const adminPanel = document.getElementById("admin-panel");
+const fabMaster = document.getElementById("fab-master");
+const masterDrawer = document.getElementById("master-drawer");
+const closeDrawer = document.getElementById("close-drawer");
+
+// Elementos de controle (compartilhados entre painéis)
 const btnClear = document.getElementById("btn-clear");
 const btnGlobalMute = document.getElementById("btn-global-mute");
 const muteTarget = document.getElementById("mute-target");
@@ -34,20 +41,14 @@ const btnMute = document.getElementById("btn-mute");
 const btnUnmute = document.getElementById("btn-unmute");
 const setNameInput = document.getElementById("set-name-input");
 const btnSetName = document.getElementById("btn-set-name");
-const usersList = document.getElementById("users-list");
-const globalMuteWarning = document.getElementById("global-mute-warning");
-
-// Elementos mobile
-const fabMaster = document.getElementById('fab-master');
-const masterDrawer = document.getElementById('master-drawer');
-const closeDrawer = document.getElementById('close-drawer');
-const adminAvatarOptionsMobile = document.querySelectorAll("#admin-avatar-options-mobile .avatar-option");
-const setNameInputMobile = document.getElementById("set-name-input-mobile");
-const btnSetNameMobile = document.getElementById("btn-set-name-mobile");
-
-// Avatares do admin desktop
 const adminAvatarOptions = document.querySelectorAll("#admin-avatar-options .avatar-option");
 
+// Outros elementos
+const usersList = document.getElementById("users-list");
+const globalMuteWarning = document.getElementById("global-mute-warning");
+const typingIndicator = document.getElementById("typing-msg");
+
+// Estado
 let selectedAvatar = null;
 let selectedMasterAvatar = null;
 let myName = null;
@@ -55,38 +56,19 @@ let myRole = null;
 let myUserId = null;
 let serverState = { globalMuted: false };
 let historicoPendente = null;
-
-// Cache de mensagens
+let typingUsers = {};
+let typingTimer;
+let currentMessageId = null;
+let currentMessageAuthorId = null;
+let longPressTimer = null;
 const mensagensCache = new Map();
 
 // Menu de contexto
 const contextMenu = document.getElementById('context-menu');
 const contextReply = document.getElementById('context-reply');
 const contextDelete = document.getElementById('context-delete');
-let currentMessageId = null;
-let currentMessageAuthorId = null;
-let longPressTimer = null;
 
-const typingIndicator = document.getElementById("typing-msg");
-let typingUsers = {};
-
-// Painel do mestre colapsável (desktop)
-const toggleAdminBtn = document.getElementById('toggle-admin-panel');
-if (toggleAdminBtn) {
-  const isCollapsed = localStorage.getItem('adminPanelCollapsed') === 'true';
-  if (isCollapsed) {
-    adminPanel.classList.add('collapsed');
-    toggleAdminBtn.textContent = '▲';
-  }
-  toggleAdminBtn.addEventListener('click', () => {
-    adminPanel.classList.toggle('collapsed');
-    const collapsed = adminPanel.classList.contains('collapsed');
-    toggleAdminBtn.textContent = collapsed ? '▲' : '▼';
-    localStorage.setItem('adminPanelCollapsed', collapsed);
-  });
-}
-
-// Mostrar aviso (toast)
+// ===== Funções auxiliares =====
 function mostrarAviso(texto) {
   const aviso = document.createElement("div");
   aviso.className = "toast-warning";
@@ -95,21 +77,127 @@ function mostrarAviso(texto) {
   setTimeout(() => aviso.remove(), 3000);
 }
 
-// Conexão
-socket.on("connect", () => {
-  console.log("Conectado ao servidor");
-  const token = localStorage.getItem("chatAuth");
-  if (token) {
-    socket.emit("resume", token);
+function atualizarBotaoPlayer() {
+  const nome = playerNameInput.value.trim();
+  const senha = playerPasswordInput ? playerPasswordInput.value.trim() : "";
+  enterPlayerBtn.disabled = !(nome && selectedAvatar && senha);
+}
+
+function formatarData(data) {
+  const dataMsg = new Date(data);
+  const hoje = new Date();
+  const diffDias = Math.floor((hoje.setHours(0,0,0,0) - new Date(dataMsg).setHours(0,0,0,0)) / 86400000);
+  const horario = dataMsg.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (diffDias === 0) return `Hoje às ${horario}`;
+  if (diffDias === 1) return `Ontem às ${horario}`;
+  if (diffDias < 7) {
+    const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return `${dias[dataMsg.getDay()]} às ${horario}`;
   }
+  return `${dataMsg.toLocaleDateString()} às ${horario}`;
+}
+
+// ===== Controle de exibição dos painéis de mestre =====
+function updateMasterUI() {
+  const isMobile = window.innerWidth <= 600;
+  const fab = document.getElementById('fab-master');
+  const adminPanel = document.getElementById('admin-panel');
+  const drawer = document.getElementById('master-drawer');
+
+  if (myRole !== "master") {
+    if (adminPanel) adminPanel.style.display = "none";
+    if (fab) fab.style.display = "none";
+    if (drawer) drawer.classList.remove("open");
+    return;
+  }
+
+  if (isMobile) {
+    adminPanel.style.display = "none";
+    fab.style.display = "flex";
+    // Drawer permanece fechado até clique no FAB
+  } else {
+    adminPanel.style.display = "block";
+    fab.style.display = "none";
+    drawer.classList.remove("open");
+  }
+}
+
+function setupMasterActions() {
+  // Seleciona todos os botões com classe master-action
+  document.querySelectorAll('.master-action').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const action = e.target.dataset.action;
+      if (!action) return;
+
+      switch (action) {
+        case 'clear':
+          if (confirm("Apagar todas as mensagens?")) socket.emit("clearAll");
+          break;
+        case 'globalMute':
+          socket.emit("setGlobalMute", { value: !serverState.globalMuted });
+          break;
+        case 'mute': {
+          const select = document.querySelector('.master-select[data-target="mute"]');
+          const targetUserId = select?.value;
+          if (!targetUserId) return mostrarAviso("Selecione um jogador.");
+          socket.emit("muteUser", { userId: targetUserId, mute: true });
+          break;
+        }
+        case 'unmute': {
+          const select = document.querySelector('.master-select[data-target="mute"]');
+          const targetUserId = select?.value;
+          if (!targetUserId) return mostrarAviso("Selecione um jogador.");
+          socket.emit("muteUser", { userId: targetUserId, mute: false });
+          break;
+        }
+        case 'setName': {
+          const input = document.querySelector('.master-input[data-input="name"]');
+          const novo = input?.value.trim();
+          if (novo) {
+            socket.emit("setMyName", novo);
+            input.value = "";
+          }
+          break;
+        }
+      }
+    });
+  });
+
+  // Avatares (tanto no painel quanto no drawer)
+  document.querySelectorAll('#admin-avatar-grid .avatar-option, #drawer-avatar-grid .avatar-option').forEach(img => {
+    img.addEventListener('click', () => {
+      // Remove selected de todos os avatares de mestre
+      document.querySelectorAll('#admin-avatar-grid .avatar-option, #drawer-avatar-grid .avatar-option').forEach(i => i.classList.remove('selected'));
+      img.classList.add('selected');
+      socket.emit("setMyAvatar", img.dataset.avatar);
+      mostrarAviso("Avatar alterado!");
+    });
+  });
+}
+
+// Chamar setupMasterActions após o registro ou na inicialização
+setupMasterActions();
+
+// ===== FAB e Drawer =====
+document.getElementById('fab-master')?.addEventListener('click', () => {
+  document.getElementById('master-drawer').classList.add('open');
+});
+document.getElementById('close-drawer')?.addEventListener('click', () => {
+  document.getElementById('master-drawer').classList.remove('open');
+});
+
+// ===== Event listeners de conexão =====
+socket.on("connect", () => {
+  const token = localStorage.getItem("chatAuth");
+  if (token) socket.emit("resume", token);
 });
 
 socket.on("resumeFailed", () => {
-  console.log("Falha na retomada da sessão");
   localStorage.removeItem("chatAuth");
   screenRegister.style.display = "";
   screenChat.style.display = "none";
-  myName = null; myRole = null; myUserId = null;
+  myName = myRole = myUserId = null;
   mostrarAviso("Sessão expirada. Faça login novamente.");
 });
 
@@ -117,7 +205,7 @@ socket.on("disconnect", () => mostrarAviso("Conexão perdida. Tentando reconecta
 socket.on("reconnect", () => mostrarAviso("Reconectado com sucesso!"));
 socket.on("reconnect_error", () => mostrarAviso("Erro ao reconectar. Verifique sua internet."));
 
-// Seleção de avatar (player)
+// ===== Registro =====
 avatarOptions.forEach(img => img.addEventListener("click", () => {
   avatarOptions.forEach(i => i.classList.remove("selected"));
   img.classList.add("selected");
@@ -125,39 +213,22 @@ avatarOptions.forEach(img => img.addEventListener("click", () => {
   atualizarBotaoPlayer();
 }));
 
-// Seleção de avatar (master na tela de login)
-if (masterAvatarOptions) {
-  masterAvatarOptions.forEach(img => img.addEventListener("click", () => {
-    masterAvatarOptions.forEach(i => i.classList.remove("selected"));
-    img.classList.add("selected");
-    selectedMasterAvatar = img.dataset.avatar;
-  }));
-}
+masterAvatarOptions.forEach(img => img.addEventListener("click", () => {
+  masterAvatarOptions.forEach(i => i.classList.remove("selected"));
+  img.classList.add("selected");
+  selectedMasterAvatar = img.dataset.avatar;
+}));
 
-// Seleção de avatar (admin desktop)
-if (adminAvatarOptions) {
-  adminAvatarOptions.forEach(img => img.addEventListener("click", () => {
-    adminAvatarOptions.forEach(i => i.classList.remove("selected"));
-    img.classList.add("selected");
-    socket.emit("setMyAvatar", img.dataset.avatar);
-    mostrarAviso("Avatar alterado!");
-  }));
-}
+adminAvatarOptions.forEach(img => img.addEventListener("click", () => {
+  adminAvatarOptions.forEach(i => i.classList.remove("selected"));
+  img.classList.add("selected");
+  socket.emit("setMyAvatar", img.dataset.avatar);
+  mostrarAviso("Avatar alterado!");
+}));
 
-// Seleção de avatar (admin mobile)
-if (adminAvatarOptionsMobile) {
-  adminAvatarOptionsMobile.forEach(img => img.addEventListener("click", () => {
-    adminAvatarOptionsMobile.forEach(i => i.classList.remove("selected"));
-    img.classList.add("selected");
-    socket.emit("setMyAvatar", img.dataset.avatar);
-    mostrarAviso("Avatar alterado!");
-  }));
-}
-
-// Toggle forms
 document.querySelectorAll('input[name="role"]').forEach(r => {
   r.addEventListener("change", () => {
-    if (r.value === "player" && r.checked) {
+    if (r.value === "player") {
       playerForm.style.display = "";
       masterForm.style.display = "none";
     } else {
@@ -167,16 +238,10 @@ document.querySelectorAll('input[name="role"]').forEach(r => {
   });
 });
 
-enterPlayerBtn.disabled = true;
-function atualizarBotaoPlayer() {
-  const nome = playerNameInput.value.trim();
-  const senha = playerPasswordInput ? playerPasswordInput.value.trim() : "";
-  enterPlayerBtn.disabled = !(nome && selectedAvatar && senha);
-}
 playerNameInput.addEventListener("input", atualizarBotaoPlayer);
-if (playerPasswordInput) playerPasswordInput.addEventListener("input", atualizarBotaoPlayer);
+playerPasswordInput.addEventListener("input", atualizarBotaoPlayer);
+atualizarBotaoPlayer();
 
-// Entrar como player
 enterPlayerBtn.addEventListener("click", () => {
   const nome = playerNameInput.value.trim();
   const senha = playerPasswordInput.value.trim();
@@ -184,19 +249,14 @@ enterPlayerBtn.addEventListener("click", () => {
   socket.emit("register", { role: "player", nome, avatar: selectedAvatar, senha });
 });
 
-// Entrar como master
 enterMasterBtn.addEventListener("click", () => {
   const senha = masterPassInput.value;
   if (!senha) return mostrarAviso("Senha necessária.");
   socket.emit("register", { role: "master", senha, avatar: selectedMasterAvatar });
 });
 
-// Receber token
-socket.on("authToken", (token) => {
-  localStorage.setItem("chatAuth", token);
-});
+socket.on("authToken", (token) => localStorage.setItem("chatAuth", token));
 
-// Histórico
 socket.on("historico", (msgs) => {
   historicoPendente = msgs;
   mensagensCache.clear();
@@ -212,71 +272,66 @@ function renderizarHistorico() {
   historicoPendente.forEach(m => renderMsg(m));
 }
 
-// Registro confirmado
 socket.on("registered", (dados) => {
   myName = dados.nome;
   myRole = dados.role || "player";
   myUserId = dados._id || null;
   screenRegister.style.display = "none";
   screenChat.style.display = "";
-
-  // Mostrar painel correto conforme role e dispositivo
-  if (myRole === "master") {
-    if (window.innerWidth <= 600) {
-      fabMaster.style.display = "flex";
-      adminPanel.style.display = "none";
-    } else {
-      adminPanel.style.display = "";
-      fabMaster.style.display = "none";
-    }
-  } else {
-    adminPanel.style.display = "none";
-    fabMaster.style.display = "none";
-  }
-
-  setTimeout(() => ajustarLayoutMobile(), 200);
+  updateMasterUI(); // ← aplica a lógica de exibição dos painéis
   if (historicoPendente) renderizarHistorico();
 });
 
 socket.on("registerError", (msg) => mostrarAviso(msg));
+
 socket.on("kicked", (msg) => {
   mostrarAviso(msg || "Você foi desconectado por outro mestre.");
   setTimeout(() => window.location.reload(), 2000);
 });
 
-// Nova mensagem
+// ===== Mensagens =====
 socket.on("mensagem", (m) => {
   m.avatar = m.avatar || "/avatars/default.png";
   mensagensCache.set(m._id, m);
   renderMsg(m);
 });
 
-// Mensagem apagada / limpeza
 socket.on("messageDeleted", (id) => {
   mensagensCache.delete(id);
   document.querySelector(`li[data-id="${id}"]`)?.remove();
 });
+
 socket.on("cleared", () => {
   chatList.innerHTML = "";
   mensagensCache.clear();
 });
 
-// Estado do servidor
+// ===== Estado do servidor =====
 socket.on("serverState", (st) => {
   serverState = st || { globalMuted: false };
-  if (btnGlobalMute) {
-    btnGlobalMute.textContent = serverState.globalMuted ? "Desilenciar todos" : "Silenciar todos";
-  }
+  btnGlobalMute.textContent = serverState.globalMuted ? "Desilenciar todos" : "Silenciar todos";
   if (globalMuteWarning) {
-    globalMuteWarning.style.display = serverState.globalMuted ? "flex" : "none";
+    globalMuteWarning.style.display = serverState.globalMuted ? "block" : "none";
   }
 });
 
 socket.on("mutedWarning", (msg) => mostrarAviso(msg));
 
-// Usuários online
+// ===== Usuários online =====
 socket.on("onlineUsers", (users) => {
-  // Atualiza select de mute
+
+   document.querySelectorAll('.master-select[data-target="mute"]').forEach(select => {
+    select.innerHTML = '<option value="">Selecione um jogador</option>';
+    users.forEach(u => {
+      if (u.role !== "master") {
+        const opt = document.createElement("option");
+        opt.value = u.userId || "";
+        opt.textContent = u.nome + (u.muted ? " (silenciado)" : "");
+        select.appendChild(opt);
+      }
+    });
+    });
+
   if (muteTarget) {
     muteTarget.innerHTML = '<option value="">Selecione um jogador</option>';
     users.forEach(u => {
@@ -288,8 +343,6 @@ socket.on("onlineUsers", (users) => {
       }
     });
   }
-
-  // Atualiza lista de usuários online
   if (usersList) {
     usersList.innerHTML = "";
     users.forEach(u => {
@@ -314,7 +367,7 @@ socket.on("onlineUsers", (users) => {
   }
 });
 
-// Envio de mensagem com suporte a reply
+// ===== Envio de mensagem =====
 function enviarMensagem() {
   if (!myName) return mostrarAviso("Defina seu perfil primeiro.");
   let texto = msgInput.value.trim();
@@ -322,9 +375,7 @@ function enviarMensagem() {
   if (texto.length > 500) return mostrarAviso("Mensagem muito longa (máx 500 chars).");
 
   const mensagemData = { texto };
-  if (replyingTo) {
-    mensagemData.replyTo = replyingTo.id;
-  }
+  if (replyingTo) mensagemData.replyTo = replyingTo.id;
 
   socket.emit("mensagem", mensagemData);
   msgInput.value = "";
@@ -341,8 +392,7 @@ msgInput.addEventListener("keydown", (e) => {
   }
 });
 
-// Auto-resize e indicador de digitação
-let typingTimer;
+// Auto-resize e digitação
 msgInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = (this.scrollHeight) + 'px';
@@ -351,6 +401,7 @@ msgInput.addEventListener('input', function() {
   typingTimer = setTimeout(() => socket.emit("stopTyping"), 2000);
 });
 
+// ===== Indicador de digitação =====
 socket.on("userTyping", (dados) => {
   const nome = dados.nome;
   if (typingUsers[nome]) clearTimeout(typingUsers[nome]);
@@ -382,7 +433,75 @@ function atualizarTypingIndicator() {
   }
 }
 
-// Menu de contexto
+// ===== Renderização de mensagem com suporte a reply =====
+function renderMsg(m) {
+  const li = document.createElement("li");
+  li.dataset.id = m._id;
+
+  const isMaster = m.role === "master";
+  const isMine = (m.autorId && myUserId && m.autorId.toString() === myUserId);
+
+  if (isMaster) li.classList.add("master");
+  if (isMine) li.classList.add("mine");
+
+  const img = document.createElement("img");
+  img.src = m.avatar || "/avatars/default.png";
+  img.className = "msg-avatar";
+  img.onerror = () => { img.src = "/avatars/default.png"; };
+
+  const box = document.createElement("div");
+  box.className = "msg-box";
+
+  const nome = document.createElement("div");
+  nome.className = "msg-name";
+  nome.textContent = m.nome;
+
+  // Reply preview
+  if (m.replyTo) {
+    const msgOriginal = mensagensCache.get(m.replyTo);
+    if (msgOriginal) {
+      const replyPreview = document.createElement("div");
+      replyPreview.className = "reply-preview";
+      replyPreview.dataset.replyId = m.replyTo;
+      replyPreview.innerHTML = `
+        <span class="reply-author">${msgOriginal.nome}</span>
+        <span class="reply-text">${msgOriginal.texto.length > 30 ? msgOriginal.texto.substring(0,30)+'…' : msgOriginal.texto}</span>
+      `;
+      replyPreview.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const originalLi = document.querySelector(`li[data-id="${m.replyTo}"]`);
+        if (originalLi) {
+          originalLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          originalLi.style.backgroundColor = 'var(--brand-primary)';
+          setTimeout(() => originalLi.style.backgroundColor = '', 1000);
+        }
+      });
+      box.appendChild(replyPreview);
+    }
+  }
+
+  const texto = document.createElement("div");
+  texto.className = "msg-text";
+  texto.textContent = m.texto;
+
+  const hora = document.createElement("div");
+  hora.className = "msg-time";
+  hora.textContent = formatarData(m.data);
+
+  box.appendChild(nome);
+  box.appendChild(texto);
+  box.appendChild(hora);
+
+  li.appendChild(img);
+  li.appendChild(box);
+
+  addContextMenuToMessage(li, m._id, m.autorId);
+
+  chatList.appendChild(li);
+  chatList.scrollTop = chatList.scrollHeight;
+}
+
+// ===== Menu de contexto =====
 function showContextMenu(e, msgId, authorId) {
   e.preventDefault();
   currentMessageId = msgId;
@@ -418,7 +537,6 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('scroll', () => contextMenu.style.display = 'none', true);
 
-// Ações do menu
 contextReply.addEventListener('click', () => {
   if (currentMessageId) {
     const msg = mensagensCache.get(currentMessageId);
@@ -438,97 +556,52 @@ contextDelete.addEventListener('click', () => {
   contextMenu.style.display = 'none';
 });
 
-// Cancelar reply
 cancelReply.addEventListener('click', cancelarReply);
 function cancelarReply() {
   replyingTo = null;
   replyBar.style.display = 'none';
 }
 
-// Renderizar mensagem com suporte a reply
-function formatarData(data) {
-  const dataMsg = new Date(data);
-  const hoje = new Date();
-  const diffDias = Math.floor((hoje.setHours(0,0,0,0) - new Date(dataMsg).setHours(0,0,0,0)) / (86400000));
-  const horario = dataMsg.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+// ===== Ações do mestre (compartilhadas entre painéis) =====
+btnClear.addEventListener("click", () => {
+  if (confirm("Apagar todas as mensagens?")) socket.emit("clearAll");
+});
 
-  if (diffDias === 0) return `Hoje às ${horario}`;
-  if (diffDias === 1) return `Ontem às ${horario}`;
-  if (diffDias < 7) {
-    const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    return `${dias[dataMsg.getDay()]} às ${horario}`;
+btnGlobalMute.addEventListener("click", () => {
+  socket.emit("setGlobalMute", { value: !serverState.globalMuted });
+});
+
+btnMute.addEventListener("click", () => {
+  const targetUserId = muteTarget.value;
+  if (!targetUserId) return mostrarAviso("Selecione um jogador.");
+  socket.emit("muteUser", { userId: targetUserId, mute: true });
+});
+
+btnUnmute.addEventListener("click", () => {
+  const targetUserId = muteTarget.value;
+  if (!targetUserId) return mostrarAviso("Selecione um jogador.");
+  socket.emit("muteUser", { userId: targetUserId, mute: false });
+});
+
+btnSetName.addEventListener("click", () => {
+  const novo = setNameInput.value.trim();
+  if (novo) {
+    socket.emit("setMyName", novo);
+    setNameInput.value = "";
   }
-  return `${dataMsg.toLocaleDateString()} às ${horario}`;
+});
+
+// ===== FAB e Drawer (mobile) =====
+if (fabMaster) {
+  fabMaster.addEventListener('click', () => {
+    masterDrawer.classList.add('open');
+  });
+  closeDrawer.addEventListener('click', () => {
+    masterDrawer.classList.remove('open');
+  });
 }
 
-function renderMsg(m) {
-  const li = document.createElement("li");
-  li.dataset.id = m._id;
-
-  const isMaster = m.role === "master";
-  const isMine = (m.autorId && myUserId && m.autorId.toString() === myUserId);
-
-  if (isMaster) li.classList.add("master");
-  if (isMine) li.classList.add("mine");
-
-  const img = document.createElement("img");
-  img.src = m.avatar || "/avatars/default.png";
-  img.className = "msg-avatar";
-  img.onerror = () => { img.src = "/avatars/default.png"; };
-
-  const box = document.createElement("div");
-  box.className = "msg-box";
-
-  // Preview de reply, se houver
-  if (m.replyTo) {
-    const msgOriginal = mensagensCache.get(m.replyTo);
-    if (msgOriginal) {
-      const replyPreview = document.createElement("div");
-      replyPreview.className = "reply-preview";
-      replyPreview.dataset.replyId = m.replyTo;
-      replyPreview.innerHTML = `
-        <span class="reply-author">${msgOriginal.nome}</span>
-        <span class="reply-text">${msgOriginal.texto.length > 30 ? msgOriginal.texto.substring(0,30)+'…' : msgOriginal.texto}</span>
-      `;
-      replyPreview.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const originalLi = document.querySelector(`li[data-id="${m.replyTo}"]`);
-        if (originalLi) {
-          originalLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          originalLi.style.backgroundColor = 'var(--brand-primary)';
-          setTimeout(() => originalLi.style.backgroundColor = '', 1000);
-        }
-      });
-      box.appendChild(replyPreview);
-    }
-  }
-
-  const nome = document.createElement("div");
-  nome.className = "msg-name";
-  nome.textContent = m.nome;
-
-  const texto = document.createElement("div");
-  texto.className = "msg-text";
-  texto.textContent = m.texto;
-
-  const hora = document.createElement("div");
-  hora.className = "msg-time";
-  hora.textContent = formatarData(m.data);
-
-  box.appendChild(nome);
-  box.appendChild(texto);
-  box.appendChild(hora);
-
-  li.appendChild(img);
-  li.appendChild(box);
-
-  addContextMenuToMessage(li, m._id, m.autorId);
-
-  chatList.appendChild(li);
-  chatList.scrollTop = chatList.scrollHeight;
-}
-
-// Atualizar timestamps
+// ===== Atualização de timestamps =====
 setInterval(() => {
   document.querySelectorAll('#chat li').forEach(li => {
     const msgId = li.dataset.id;
@@ -542,6 +615,7 @@ setInterval(() => {
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
+    // forçar atualização de timestamps
     document.querySelectorAll('#chat li').forEach(li => {
       const msgId = li.dataset.id;
       const dados = mensagensCache.get(msgId);
@@ -553,69 +627,21 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// Admin actions
-btnClear.addEventListener("click", () => {
-  if (confirm("Apagar todas as mensagens?")) socket.emit("clearAll");
-});
-btnGlobalMute.addEventListener("click", () => {
-  socket.emit("setGlobalMute", { value: !serverState.globalMuted });
-});
-btnMute.addEventListener("click", () => {
-  const targetUserId = muteTarget.value;
-  if (!targetUserId) return mostrarAviso("Selecione um jogador.");
-  socket.emit("muteUser", { userId: targetUserId, mute: true });
-});
-btnUnmute.addEventListener("click", () => {
-  const targetUserId = muteTarget.value;
-  if (!targetUserId) return mostrarAviso("Selecione um jogador.");
-  socket.emit("muteUser", { userId: targetUserId, mute: false });
-});
-btnSetName.addEventListener("click", () => {
-  const novo = setNameInput.value.trim();
-  if (novo) {
-    socket.emit("setMyName", novo);
-    setNameInput.value = "";
-  }
-});
-if (btnSetNameMobile) {
-  btnSetNameMobile.addEventListener("click", () => {
-    const novo = setNameInputMobile.value.trim();
-    if (novo) {
-      socket.emit("setMyName", novo);
-      setNameInputMobile.value = "";
-      masterDrawer.classList.remove('open');
-    }
-  });
-}
-
-// FAB e Drawer mobile
-if (fabMaster) {
-  fabMaster.addEventListener('click', () => {
-    masterDrawer.classList.add('open');
-  });
-  closeDrawer.addEventListener('click', () => {
-    masterDrawer.classList.remove('open');
-  });
-}
-
-// Ajuste de layout mobile
-function ajustarLayoutMobile() {
+// ===== Responsividade =====
+window.addEventListener('resize', () => {
+  updateMasterUI();
+  // Garantir que o input não suma
   if (window.innerWidth <= 600) {
-    if (myRole === "master") {
-      fabMaster.style.display = "flex";
-      adminPanel.style.display = "none";
-    }
-  } else {
-    fabMaster.style.display = "none";
-    if (myRole === "master") adminPanel.style.display = "";
+    document.getElementById('chat-input').style.display = 'flex';
   }
-}
-window.addEventListener('resize', ajustarLayoutMobile);
-document.addEventListener('DOMContentLoaded', ajustarLayoutMobile);
-setTimeout(ajustarLayoutMobile, 500);
-
-// Observador para quando o chat for exibido
-const observer = new MutationObserver(() => {
-  if (screenChat.style.display !== 'none') setTimeout(ajustarLayoutMobile, 100);
 });
-if (screenChat) observer.observe(screenChat, { attributes: true });
+
+// Forçar ajuste inicial
+document.addEventListener('DOMContentLoaded', () => {
+  updateMasterUI();
+  setTimeout(() => {
+    if (window.innerWidth <= 600) {
+      document.getElementById('chat-input').style.display = 'flex';
+    }
+  }, 500);
+});
