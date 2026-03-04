@@ -2,11 +2,10 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <title>Chat — jogo</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
   <!-- TELA DE LOGIN -->
@@ -64,9 +63,7 @@
       <input id="master-pass" type="password" placeholder="Senha do mestre">
       <button id="enter-master">Entrar como Mestre</button>
     </div>
-
   </div>
-
 
   <!-- TELA DO CHAT -->
   <div id="screen-chat" style="display:none">
@@ -77,10 +74,11 @@
       <ul id="users-list"></ul>
     </div>
 
-    <div id="global-mute-warning" style="display:none;"> O chat está silenciado pelo mestre</div>
+    <div id="global-mute-warning" style="display:none;">🔇 O chat está silenciado pelo mestre</div>
 
     <!-- CHAT -->
     <div id="chat-container">
+      <!-- Barra de reply -->
       <div id="reply-bar" style="display: none;">
         <div id="reply-content">
           <span id="reply-author"></span>
@@ -91,13 +89,16 @@
 
       <ul id="chat"></ul>
 
+      <!-- Indicador de digitação -->
+      <div id="typing-msg"></div>
+
       <div id="chat-input">
         <textarea id="msg" placeholder="Mensagem..." rows="1"></textarea>
         <button id="send">Enviar</button>
       </div>
     </div>
 
-    <!-- PAINEL DO MESTRE -->
+    <!-- PAINEL DO MESTRE (versão desktop) -->
     <div id="admin-panel" style="display:none">
       <div class="admin-header">
         <h3>Painel do Mestre</h3>
@@ -137,8 +138,45 @@
       </div>
     </div>
 
+    <!-- Botão FAB para mestre (mobile) -->
+    <button id="fab-master" style="display:none;">⚙️</button>
+
+    <!-- Drawer do mestre (mobile) -->
+    <div id="master-drawer">
+      <button id="close-drawer">✕</button>
+      <h3>Painel do Mestre</h3>
+      <div class="admin-section">
+        <button id="btn-clear">Limpar Chat</button>
+        <button id="btn-global-mute">Silenciar Todos</button>
+      </div>
+      <div class="admin-section">
+        <select id="mute-target"></select>
+        <button id="btn-mute">Silenciar</button>
+        <button id="btn-unmute">Dessilenciar</button>
+      </div>
+      <div class="admin-section">
+        <h4>Trocar Avatar</h4>
+        <div id="admin-avatar-options-mobile" class="avatar-grid small">
+          <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
+          <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
+          <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
+          <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
+          <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
+          <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
+          <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
+          <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
+          <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
+          <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
+        </div>
+      </div>
+      <div class="admin-section">
+        <input id="set-name-input-mobile" placeholder="Novo nome">
+        <button id="btn-set-name-mobile">Trocar nome</button>
+      </div>
+    </div>
   </div>
 
+  <!-- MENU DE CONTEXTO -->
   <div id="context-menu" class="context-menu" style="display:none;">
     <ul>
       <li id="context-reply">Responder</li>
@@ -148,6 +186,5 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
-
 </body>
 </html>

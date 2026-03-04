@@ -1,7 +1,7 @@
 // script.js
 const socket = io();
 
-// UI elements
+// Elementos da UI
 const screenRegister = document.getElementById("screen-register");
 const playerForm = document.getElementById("player-form");
 const masterForm = document.getElementById("master-form");
@@ -37,6 +37,15 @@ const btnSetName = document.getElementById("btn-set-name");
 const usersList = document.getElementById("users-list");
 const globalMuteWarning = document.getElementById("global-mute-warning");
 
+// Elementos mobile
+const fabMaster = document.getElementById('fab-master');
+const masterDrawer = document.getElementById('master-drawer');
+const closeDrawer = document.getElementById('close-drawer');
+const adminAvatarOptionsMobile = document.querySelectorAll("#admin-avatar-options-mobile .avatar-option");
+const setNameInputMobile = document.getElementById("set-name-input-mobile");
+const btnSetNameMobile = document.getElementById("btn-set-name-mobile");
+
+// Avatares do admin desktop
 const adminAvatarOptions = document.querySelectorAll("#admin-avatar-options .avatar-option");
 
 let selectedAvatar = null;
@@ -61,7 +70,7 @@ let longPressTimer = null;
 const typingIndicator = document.getElementById("typing-msg");
 let typingUsers = {};
 
-// Painel do mestre colapsável
+// Painel do mestre colapsável (desktop)
 const toggleAdminBtn = document.getElementById('toggle-admin-panel');
 if (toggleAdminBtn) {
   const isCollapsed = localStorage.getItem('adminPanelCollapsed') === 'true';
@@ -74,10 +83,10 @@ if (toggleAdminBtn) {
     const collapsed = adminPanel.classList.contains('collapsed');
     toggleAdminBtn.textContent = collapsed ? '▲' : '▼';
     localStorage.setItem('adminPanelCollapsed', collapsed);
-    if (window.innerWidth <= 600) ajustarLayoutMobile();
   });
 }
 
+// Mostrar aviso (toast)
 function mostrarAviso(texto) {
   const aviso = document.createElement("div");
   aviso.className = "toast-warning";
@@ -125,10 +134,20 @@ if (masterAvatarOptions) {
   }));
 }
 
-// Seleção de avatar (admin)
+// Seleção de avatar (admin desktop)
 if (adminAvatarOptions) {
   adminAvatarOptions.forEach(img => img.addEventListener("click", () => {
     adminAvatarOptions.forEach(i => i.classList.remove("selected"));
+    img.classList.add("selected");
+    socket.emit("setMyAvatar", img.dataset.avatar);
+    mostrarAviso("Avatar alterado!");
+  }));
+}
+
+// Seleção de avatar (admin mobile)
+if (adminAvatarOptionsMobile) {
+  adminAvatarOptionsMobile.forEach(img => img.addEventListener("click", () => {
+    adminAvatarOptionsMobile.forEach(i => i.classList.remove("selected"));
     img.classList.add("selected");
     socket.emit("setMyAvatar", img.dataset.avatar);
     mostrarAviso("Avatar alterado!");
@@ -200,8 +219,21 @@ socket.on("registered", (dados) => {
   myUserId = dados._id || null;
   screenRegister.style.display = "none";
   screenChat.style.display = "";
-  if (myRole === "master") adminPanel.style.display = "";
-  else adminPanel.style.display = "none";
+
+  // Mostrar painel correto conforme role e dispositivo
+  if (myRole === "master") {
+    if (window.innerWidth <= 600) {
+      fabMaster.style.display = "flex";
+      adminPanel.style.display = "none";
+    } else {
+      adminPanel.style.display = "";
+      fabMaster.style.display = "none";
+    }
+  } else {
+    adminPanel.style.display = "none";
+    fabMaster.style.display = "none";
+  }
+
   setTimeout(() => ajustarLayoutMobile(), 200);
   if (historicoPendente) renderizarHistorico();
 });
@@ -232,9 +264,11 @@ socket.on("cleared", () => {
 // Estado do servidor
 socket.on("serverState", (st) => {
   serverState = st || { globalMuted: false };
-  btnGlobalMute.textContent = serverState.globalMuted ? "Desilenciar todos" : "Silenciar todos";
+  if (btnGlobalMute) {
+    btnGlobalMute.textContent = serverState.globalMuted ? "Desilenciar todos" : "Silenciar todos";
+  }
   if (globalMuteWarning) {
-    globalMuteWarning.style.display = serverState.globalMuted ? "block" : "none";
+    globalMuteWarning.style.display = serverState.globalMuted ? "flex" : "none";
   }
 });
 
@@ -242,6 +276,7 @@ socket.on("mutedWarning", (msg) => mostrarAviso(msg));
 
 // Usuários online
 socket.on("onlineUsers", (users) => {
+  // Atualiza select de mute
   if (muteTarget) {
     muteTarget.innerHTML = '<option value="">Selecione um jogador</option>';
     users.forEach(u => {
@@ -253,6 +288,8 @@ socket.on("onlineUsers", (users) => {
       }
     });
   }
+
+  // Atualiza lista de usuários online
   if (usersList) {
     usersList.innerHTML = "";
     users.forEach(u => {
@@ -277,23 +314,23 @@ socket.on("onlineUsers", (users) => {
   }
 });
 
-// Envio de mensagem
+// Envio de mensagem com suporte a reply
 function enviarMensagem() {
   if (!myName) return mostrarAviso("Defina seu perfil primeiro.");
   let texto = msgInput.value.trim();
   if (!texto) return;
   if (texto.length > 500) return mostrarAviso("Mensagem muito longa (máx 500 chars).");
 
-  // Se estiver respondendo, adiciona menção
+  const mensagemData = { texto };
   if (replyingTo) {
-    texto = `@${replyingTo.nome} ${texto}`;
-    cancelarReply();
+    mensagemData.replyTo = replyingTo.id;
   }
 
-  socket.emit("mensagem", { texto });
+  socket.emit("mensagem", mensagemData);
   msgInput.value = "";
   socket.emit("stopTyping");
   msgInput.style.height = 'auto';
+  cancelarReply();
 }
 
 sendBtn.addEventListener("click", enviarMensagem);
@@ -304,7 +341,8 @@ msgInput.addEventListener("keydown", (e) => {
   }
 });
 
-// Auto-resize
+// Auto-resize e indicador de digitação
+let typingTimer;
 msgInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = (this.scrollHeight) + 'px';
@@ -313,8 +351,6 @@ msgInput.addEventListener('input', function() {
   typingTimer = setTimeout(() => socket.emit("stopTyping"), 2000);
 });
 
-// Digitando
-let typingTimer;
 socket.on("userTyping", (dados) => {
   const nome = dados.nome;
   if (typingUsers[nome]) clearTimeout(typingUsers[nome]);
@@ -324,6 +360,7 @@ socket.on("userTyping", (dados) => {
   }, 3000);
   atualizarTypingIndicator();
 });
+
 socket.on("userStopTyping", (dados) => {
   delete typingUsers[dados.nome];
   atualizarTypingIndicator();
@@ -388,7 +425,7 @@ contextReply.addEventListener('click', () => {
     if (msg) {
       replyingTo = { id: msg._id, nome: msg.nome, texto: msg.texto };
       replyAuthor.textContent = msg.nome;
-      replyText.textContent = msg.texto.length > 30 ? msg.texto.substring(0, 30) + '…' : msg.texto;
+      replyText.textContent = msg.texto.length > 40 ? msg.texto.substring(0, 40) + '…' : msg.texto;
       replyBar.style.display = 'flex';
       msgInput.focus();
     }
@@ -408,7 +445,7 @@ function cancelarReply() {
   replyBar.style.display = 'none';
 }
 
-// Renderizar mensagem
+// Renderizar mensagem com suporte a reply
 function formatarData(data) {
   const dataMsg = new Date(data);
   const hoje = new Date();
@@ -441,6 +478,30 @@ function renderMsg(m) {
 
   const box = document.createElement("div");
   box.className = "msg-box";
+
+  // Preview de reply, se houver
+  if (m.replyTo) {
+    const msgOriginal = mensagensCache.get(m.replyTo);
+    if (msgOriginal) {
+      const replyPreview = document.createElement("div");
+      replyPreview.className = "reply-preview";
+      replyPreview.dataset.replyId = m.replyTo;
+      replyPreview.innerHTML = `
+        <span class="reply-author">${msgOriginal.nome}</span>
+        <span class="reply-text">${msgOriginal.texto.length > 30 ? msgOriginal.texto.substring(0,30)+'…' : msgOriginal.texto}</span>
+      `;
+      replyPreview.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const originalLi = document.querySelector(`li[data-id="${m.replyTo}"]`);
+        if (originalLi) {
+          originalLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          originalLi.style.backgroundColor = 'var(--brand-primary)';
+          setTimeout(() => originalLi.style.backgroundColor = '', 1000);
+        }
+      });
+      box.appendChild(replyPreview);
+    }
+  }
 
   const nome = document.createElement("div");
   nome.className = "msg-name";
@@ -480,7 +541,16 @@ setInterval(() => {
 }, 60000);
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) atualizarTimestamps();
+  if (!document.hidden) {
+    document.querySelectorAll('#chat li').forEach(li => {
+      const msgId = li.dataset.id;
+      const dados = mensagensCache.get(msgId);
+      if (dados) {
+        const timeElement = li.querySelector('.msg-time');
+        if (timeElement) timeElement.textContent = formatarData(new Date(dados.data));
+      }
+    });
+  }
 });
 
 // Admin actions
@@ -507,18 +577,37 @@ btnSetName.addEventListener("click", () => {
     setNameInput.value = "";
   }
 });
+if (btnSetNameMobile) {
+  btnSetNameMobile.addEventListener("click", () => {
+    const novo = setNameInputMobile.value.trim();
+    if (novo) {
+      socket.emit("setMyName", novo);
+      setNameInputMobile.value = "";
+      masterDrawer.classList.remove('open');
+    }
+  });
+}
 
-// Mobile layout
+// FAB e Drawer mobile
+if (fabMaster) {
+  fabMaster.addEventListener('click', () => {
+    masterDrawer.classList.add('open');
+  });
+  closeDrawer.addEventListener('click', () => {
+    masterDrawer.classList.remove('open');
+  });
+}
+
+// Ajuste de layout mobile
 function ajustarLayoutMobile() {
   if (window.innerWidth <= 600) {
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) {
-      chatInput.style.display = 'flex';
-      chatInput.style.visibility = 'visible';
-      chatInput.style.opacity = '1';
-      chatInput.style.height = 'auto';
-      chatInput.style.minHeight = '60px';
+    if (myRole === "master") {
+      fabMaster.style.display = "flex";
+      adminPanel.style.display = "none";
     }
+  } else {
+    fabMaster.style.display = "none";
+    if (myRole === "master") adminPanel.style.display = "";
   }
 }
 window.addEventListener('resize', ajustarLayoutMobile);

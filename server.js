@@ -301,7 +301,8 @@ io.on("connection", (socket) => {
         texto,
         avatar: socket.usuario.avatar || "/avatars/default.png",
         role: socket.usuario.role || "player",
-        autorId: socket.usuario._id || null
+        autorId: socket.usuario._id || null,
+        replyTo: dados.replyTo || null // novo campo
       });
       await nova.save();
 
@@ -313,9 +314,14 @@ io.on("connection", (socket) => {
 
   socket.on("deleteMessage", async (id) => {
     try {
-      if (!socket.usuario || socket.usuario.role !== "master") return;
-      await Mensagem.findByIdAndDelete(id);
-      io.emit("messageDeleted", id);
+      if (!socket.usuario) return;
+      const mensagem = await Mensagem.findById(id);
+      if (!mensagem) return;
+      // Permite apagar se for mestre OU se for o autor da mensagem
+      if (socket.usuario.role === "master" || (socket.usuario._id && mensagem.autorId && mensagem.autorId.toString() === socket.usuario._id.toString())) {
+        await Mensagem.findByIdAndDelete(id);
+        io.emit("messageDeleted", id);
+      }
     } catch (e) { console.error("Erro deleteMessage:", e); }
   });
 
