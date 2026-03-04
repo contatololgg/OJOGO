@@ -422,6 +422,41 @@ button:hover { background: var(--brand-hover); }
   100% { opacity: 0; }
 }
 
+#reply-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-element);
+  padding: 8px 16px;
+  border-top: 1px solid var(--bg-main);
+  font-size: 14px;
+}
+#reply-content {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#reply-author {
+  font-weight: bold;
+  color: var(--brand-primary);
+  margin-right: 8px;
+}
+#reply-text {
+  color: var(--text-muted);
+}
+#cancel-reply {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 8px;
+}
+#cancel-reply:hover {
+  color: var(--text-main);
+}
+
 /* =========================================
    RESPONSIVIDADE
 ========================================= */
@@ -746,4 +781,88 @@ button:hover { background: var(--brand-hover); }
   .msg-avatar { width: 44px; height: 44px; }
   .msg-text { font-size: 15px; }
   button { font-size: 15px; padding: 10px; }
+}
+
+/* Adicione ao final do arquivo style.css */
+
+#global-mute-warning {
+  background: var(--brand-danger);
+  color: white;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  display: none; /* inicialmente oculto */
+}
+
+#reply-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-element);
+  padding: 8px 16px;
+  border-top: 1px solid var(--bg-main);
+  font-size: 14px;
+}
+#reply-content {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#reply-author {
+  font-weight: bold;
+  color: var(--brand-primary);
+  margin-right: 8px;
+}
+#reply-text {
+  color: var(--text-muted);
+}
+#cancel-reply {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 8px;
+}
+#cancel-reply:hover {
+  color: var(--text-main);
+}
+
+/* Garantir que o input do chat fique visível em mobile */
+@media (max-width: 600px) {
+  #chat-input {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 60px !important;
+    position: relative;
+    z-index: 20;
+    background: var(--bg-main) !important;
+    border-top: 1px solid var(--bg-element);
+    pointer-events: auto !important;
+  }
+  #chat-input textarea,
+  #chat-input button {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  #chat-container {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+  #chat {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+  }
+  /* Quando o painel do mestre estiver aberto, manter input visível */
+  #admin-panel:not(.collapsed) ~ #chat-container #chat-input {
+    position: relative !important;
+    z-index: 30 !important;
+    background: var(--bg-main) !important;
+  }
 }
