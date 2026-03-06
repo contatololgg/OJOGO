@@ -1,190 +1,206 @@
-<!doctype html>
+```html
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
-  <title>Chat — jogo</title>
-  <link rel="stylesheet" href="style.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Chat</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+</script>
+
 </head>
+
 <body>
 
-  <!-- TELA DE LOGIN -->
-  <div id="screen-register">
-    <h2>Entrar</h2>
+<!-- TELA REGISTRO -->
+<div id="screen-register">
 
-    <div class="role-selector">
-      <input type="radio" id="role-player" name="role" value="player" checked>
-      <label for="role-player">Jogador</label>
-      <input type="radio" id="role-master" name="role" value="master">
-      <label for="role-master">Mestre</label>
-    </div>
+  <div class="register-box">
 
-    <!-- PLAYER FORM -->
-    <div id="player-form">
-      <h3>Escolha avatar e nome</h3>
-      <div id="avatar-options" class="avatar-grid">
-        <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
-        <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
-        <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
-        <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
-        <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
-        <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
-        <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
-        <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
-        <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
-        <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
-      </div>
-      <input id="player-name" placeholder="Seu nome" maxlength="20">
-      <input id="player-password" type="password" placeholder="Senha (mín 4 caracteres)">
-      <button id="enter-player" disabled>Entrar como Jogador</button>
-    </div>
+    <h2>Entrar no Chat</h2>
 
-    <!-- MASTER FORM -->
-    <div id="master-form" style="display:none">
-      <h3>Mestre</h3>
-      <h4>Escolher avatar</h4>
-      <div id="master-avatar-options" class="avatar-grid">
-        <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
-        <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
-        <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
-        <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
-        <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
-        <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
-        <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
-        <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
-        <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
-        <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
-      </div>
-      <input id="master-pass" type="password" placeholder="Senha do mestre">
-      <button id="enter-master">Entrar como Mestre</button>
-    </div>
+    <input id="register-name" type="text" placeholder="Seu nome">
+
+    <input id="register-secret" type="password" placeholder="Senha mestre (opcional)">
+
+    <button id="register-btn">Entrar</button>
+
   </div>
 
-  <!-- TELA DO CHAT -->
-  <div id="screen-chat" style="display:none">
+</div>
 
-    <!-- PAINEL DE USUÁRIOS ONLINE -->
-    <div id="users-panel">
-      <h3>Online</h3>
-      <ul id="users-list"></ul>
+
+<!-- TELA CHAT -->
+<div id="screen-chat" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+
+    <h3>Online</h3>
+
+    <ul id="users-list"></ul>
+
+  </aside>
+
+
+  <!-- ÁREA CHAT -->
+  <main id="chat-area">
+
+    <div id="global-mute-warning" style="display:none;">
+      Chat temporariamente silenciado
     </div>
 
-    <!-- AVISO DE MUTE GLOBAL -->
-    <div id="global-mute-warning" style="display:none;">🔇 Chat silenciado pelo mestre</div>
+    <ul id="chat"></ul>
 
-    <!-- CONTAINER PRINCIPAL DO CHAT -->
-    <div id="chat-container">
-      <!-- BARRA DE RESPOSTA (REPLY) -->
-      <div id="reply-bar" style="display: none;">
-        <div id="reply-content">
-          <span id="reply-author"></span>
-          <span id="reply-text"></span>
-        </div>
-        <button id="cancel-reply">✕</button>
-      </div>
-
-      <!-- LISTA DE MENSAGENS -->
-      <ul id="chat"></ul>
-
-      <!-- INPUT DE MENSAGEM -->
-      <div id="chat-input">
-        <textarea id="msg" placeholder="Mensagem..." rows="1"></textarea>
-        <button id="send">Enviar</button>
-      </div>
+    <!-- BARRA REPLY -->
+    <div id="reply-bar" style="display:none;">
+      <span id="reply-text"></span>
+      <button id="cancel-reply">Cancelar</button>
     </div>
 
-    <!-- PAINEL DO MESTRE (DESKTOP) -->
-    <div id="admin-panel" class="master-panel">
-      <div class="admin-header">
-        <h3>Painel do Mestre</h3>
-        <button class="toggle-admin-panel">▼</button>
-      </div>
-      <div class="admin-section">
-        <button class="master-action" data-action="clear">Limpar Chat</button>
-        <button class="master-action" data-action="globalMute">Silenciar Todos</button>
-      </div>
-      <div class="admin-section">
-        <select class="master-select" data-target="mute">
-          <option value="">Selecione um jogador</option>
-        </select>
-        <button class="master-action" data-action="mute">Silenciar</button>
-        <button class="master-action" data-action="unmute">Dessilenciar</button>
-      </div>
-      <div class="admin-section">
-        <h4>Trocar Avatar</h4>
-        <div class="avatar-grid small" id="admin-avatar-grid">
-          <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
-          <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
-          <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
-          <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
-          <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
-          <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
-          <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
-          <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
-          <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
-          <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
-        </div>
-      </div>
-      <div class="admin-section">
-        <input type="text" class="master-input" data-input="name" placeholder="Novo nome" maxlength="20">
-        <button class="master-action" data-action="setName">Trocar nome</button>
-      </div>
+    <!-- INPUT -->
+    <div id="chat-input">
+
+      <textarea id="msg-input" placeholder="Mensagem..."></textarea>
+
+      <button id="send-btn">Enviar</button>
+
     </div>
 
-    <!-- BOTÃO FAB (MOBILE) - aparece apenas para mestre em mobile -->
-    <button id="fab-master" class="fab-master" style="display:none;">⚙️</button>
+    <div id="typing-msg"></div>
 
-    <!-- DRAWER DO MESTRE (MOBILE) -->
-    <div id="master-drawer" class="master-drawer">
-      <div class="drawer-header">
-        <h3>Painel do Mestre</h3>
-        <button id="close-drawer">✕</button>
-      </div>
-      <div class="admin-section">
-        <button class="master-action" data-action="clear">Limpar Chat</button>
-        <button class="master-action" data-action="globalMute">Silenciar Todos</button>
-      </div>
-      <div class="admin-section">
-        <select class="master-select" data-target="mute">
-          <option value="">Selecione um jogador</option>
-        </select>
-        <button class="master-action" data-action="mute">Silenciar</button>
-        <button class="master-action" data-action="unmute">Dessilenciar</button>
-      </div>
-      <div class="admin-section">
-        <h4>Trocar Avatar</h4>
-        <div class="avatar-grid small" id="drawer-avatar-grid">
-          <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
-          <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
-          <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
-          <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
-          <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
-          <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
-          <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
-          <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
-          <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
-          <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
-        </div>
-      </div>
-      <div class="admin-section">
-        <input type="text" class="master-input" data-input="name" placeholder="Novo nome" maxlength="20">
-        <button class="master-action" data-action="setName">Trocar nome</button>
-      </div>
+  </main>
+
+
+  <!-- PAINEL ADMIN (DESKTOP) -->
+  <div id="admin-panel">
+
+    <h3>Painel Mestre</h3>
+
+    <button class="master-action" data-action="clear">
+      Limpar chat
+    </button>
+
+    <button class="master-action" data-action="globalMute">
+      Silenciar todos
+    </button>
+
+    <select class="master-select" data-target="mute"></select>
+
+    <button class="master-action" data-action="mute">
+      Mutar
+    </button>
+
+    <button class="master-action" data-action="unmute">
+      Desmutar
+    </button>
+
+    <input class="master-input" data-input="name" placeholder="Alterar nome">
+
+    <button class="master-action" data-action="setName">
+      Alterar
+    </button>
+
+    <h4>Avatar</h4>
+
+    <div id="admin-avatar-grid" class="avatar-grid">
+
+      <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
+      <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
+      <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
+      <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
+      <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
+      <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
+      <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
+      <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
+      <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
+      <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
+
     </div>
+
   </div>
 
-  <!-- MENU DE CONTEXTO -->
-  <div id="context-menu" class="context-menu">
-    <ul>
-      <li id="context-reply">Responder</li>
-      <li id="context-delete">Apagar</li>
-    </ul>
+</div>
+
+
+<!-- FAB MOBILE -->
+<button id="fab-master">
+⚙
+</button>
+
+
+<!-- DRAWER MOBILE -->
+<div id="master-drawer">
+
+  <h3>Painel Mestre</h3>
+
+  <button class="master-action" data-action="clear">
+    Limpar chat
+  </button>
+
+  <button class="master-action" data-action="globalMute">
+    Silenciar todos
+  </button>
+
+  <select class="master-select" data-target="mute"></select>
+
+  <button class="master-action" data-action="mute">
+    Mutar
+  </button>
+
+  <button class="master-action" data-action="unmute">
+    Desmutar
+  </button>
+
+  <input class="master-input" data-input="name" placeholder="Alterar nome">
+
+  <button class="master-action" data-action="setName">
+    Alterar
+  </button>
+
+  <h4>Avatar</h4>
+
+  <div id="drawer-avatar-grid" class="avatar-grid">
+
+    <img src="avatars/1.png" data-avatar="avatars/1.png" class="avatar-option">
+    <img src="avatars/2.png" data-avatar="avatars/2.png" class="avatar-option">
+    <img src="avatars/3.png" data-avatar="avatars/3.png" class="avatar-option">
+    <img src="avatars/4.png" data-avatar="avatars/4.png" class="avatar-option">
+    <img src="avatars/5.png" data-avatar="avatars/5.png" class="avatar-option">
+    <img src="avatars/6.png" data-avatar="avatars/6.png" class="avatar-option">
+    <img src="avatars/7.png" data-avatar="avatars/7.png" class="avatar-option">
+    <img src="avatars/8.png" data-avatar="avatars/8.png" class="avatar-option">
+    <img src="avatars/9.png" data-avatar="avatars/9.png" class="avatar-option">
+    <img src="avatars/10.png" data-avatar="avatars/10.png" class="avatar-option">
+
   </div>
 
-  <!-- INDICADOR DE DIGITAÇÃO (será posicionado via JS) -->
-  <div id="typing-msg" class="typing-indicator"></div>
+</div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="script.js"></script>
+
+<!-- MENU CONTEXTO -->
+<div id="context-menu">
+
+  <button id="context-reply">
+    Responder
+  </button>
+
+  <button id="context-delete">
+    Apagar
+  </button>
+
+</div>
+
+
+<script src="script.js"></script>
+
 </body>
 </html>
+```
